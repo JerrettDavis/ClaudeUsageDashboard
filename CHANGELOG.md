@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.0.0](https://github.com/JerrettDavis/ClaudeUsageDashboard/compare/v2.0.0...v3.0.0) (2026-02-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* Replaces Electron with a minimal Rust launcher (~5MB vs ~100MB)
+
+### Features
+
+* switch to lightweight Rust launcher ([4148ec5](https://github.com/JerrettDavis/ClaudeUsageDashboard/commit/4148ec5c006c7383bade4e04e917a78957ee0c93))
+
 ## [2.0.0](https://github.com/JerrettDavis/ClaudeUsageDashboard/compare/v1.0.0...v2.0.0) (2026-02-05)
 
 
