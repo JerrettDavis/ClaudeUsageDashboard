@@ -15,6 +15,7 @@ if (!fs.existsSync(dataDir)) {
 
 // Initialize database with migrations
 import { initializeDatabase } from '@/lib/db/client';
+
 try {
   initializeDatabase();
 } catch (error) {

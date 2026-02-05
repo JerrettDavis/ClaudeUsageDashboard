@@ -85,7 +85,9 @@ describe('WorkerPool', () => {
     });
 
     // Cleanup
-    files.forEach((file) => fs.unlinkSync(file));
+    for (const file of files) {
+      fs.unlinkSync(file);
+    }
     await pool.terminate();
   }, 15000);
 
