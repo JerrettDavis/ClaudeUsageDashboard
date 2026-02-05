@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { appRouter } from '@/lib/trpc/root';
+import { describe, expect, it } from 'vitest';
 import { createCallerFactory } from '@/lib/trpc/init';
+import { appRouter } from '@/lib/trpc/root';
 
 describe('tRPC Providers Router', () => {
   const createCaller = createCallerFactory(appRouter);

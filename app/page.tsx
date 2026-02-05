@@ -1,8 +1,8 @@
 'use client';
 
-import { trpc } from '@/lib/trpc/provider';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { trpc } from '@/lib/trpc/provider';
 
 export default function Home() {
   const { data: providers, isLoading } = trpc.providers.list.useQuery();
@@ -16,7 +16,7 @@ export default function Home() {
         <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl">
           Monitor and analyze your Claude AI usage across projects with real-time insights
         </p>
-        
+
         <div className="flex gap-4 justify-center mt-8">
           <Link href="/dashboard">
             <Button size="lg" className="text-lg px-8">
@@ -33,9 +33,14 @@ export default function Home() {
         <div className="mt-12 pt-8 border-t">
           <p className="text-sm text-gray-500 mb-4">Providers Status</p>
           <div className="flex gap-4 justify-center">
-            {providers && providers.map((provider) => (
-              <div key={provider.id} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border">
-                <div className={`h-2 w-2 rounded-full ${provider.installed ? 'bg-green-500' : 'bg-gray-300'}`} />
+            {providers?.map((provider) => (
+              <div
+                key={provider.id}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border"
+              >
+                <div
+                  className={`h-2 w-2 rounded-full ${provider.installed ? 'bg-green-500' : 'bg-gray-300'}`}
+                />
                 <span className="text-sm font-medium">{provider.name}</span>
               </div>
             ))}

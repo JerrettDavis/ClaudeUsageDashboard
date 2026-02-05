@@ -1,8 +1,8 @@
-import { router, publicProcedure } from '../init';
+import { and, desc, eq, gte, lte } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '@/lib/db/client';
-import { sessions, messages } from '@/lib/db/schema';
-import { eq, desc, and, gte, lte } from 'drizzle-orm';
+import { messages, sessions } from '@/lib/db/schema';
+import { publicProcedure, router } from '../init';
 
 export const sessionsRouter = router({
   list: publicProcedure
@@ -36,28 +36,22 @@ export const sessionsRouter = router({
         .offset(offset);
     }),
 
-  get: publicProcedure
-    .input(z.object({ id: z.string() }))
-    .query(async ({ input }) => {
-      const session = await db
-        .select()
-        .from(sessions)
-        .where(eq(sessions.id, input.id))
-        .limit(1);
+  get: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+    const session = await db.select().from(sessions).where(eq(sessions.id, input.id)).limit(1);
 
-      if (!session[0]) return null;
+    if (!session[0]) return null;
 
-      const sessionMessages = await db
-        .select()
-        .from(messages)
-        .where(eq(messages.sessionId, input.id))
-        .orderBy(messages.timestamp);
+    const sessionMessages = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.sessionId, input.id))
+      .orderBy(messages.timestamp);
 
-      return {
-        ...session[0],
-        messages: sessionMessages,
-      };
-    }),
+    return {
+      ...session[0],
+      messages: sessionMessages,
+    };
+  }),
 
   count: publicProcedure
     .input(

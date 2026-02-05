@@ -1,24 +1,18 @@
-import { router, publicProcedure } from '../init';
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '@/lib/db/client';
 import { providers } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { publicProcedure, router } from '../init';
 
 export const providersRouter = router({
   list: publicProcedure.query(async () => {
     return await db.select().from(providers);
   }),
 
-  get: publicProcedure
-    .input(z.object({ id: z.string() }))
-    .query(async ({ input }) => {
-      const result = await db
-        .select()
-        .from(providers)
-        .where(eq(providers.id, input.id))
-        .limit(1);
-      return result[0] || null;
-    }),
+  get: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+    const result = await db.select().from(providers).where(eq(providers.id, input.id)).limit(1);
+    return result[0] || null;
+  }),
 
   updateConfig: publicProcedure
     .input(

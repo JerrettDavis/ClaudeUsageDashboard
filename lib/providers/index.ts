@@ -1,5 +1,5 @@
-import { claudeProvider } from './claude';
 import type { AIProvider } from '@/types';
+import { claudeProvider } from './claude';
 
 /**
  * Provider Registry

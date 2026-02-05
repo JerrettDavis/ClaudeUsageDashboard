@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Activity, Wifi, WifiOff } from 'lucide-react';
+import { Wifi, WifiOff } from 'lucide-react';
+import { useState } from 'react';
 import { useEventSource } from '@/lib/hooks/use-event-source';
-import { cn } from '@/lib/utils';
 
 export function ConnectionStatus() {
-  const [events, setEvents] = useState<any[]>([]);
+  const [_events, setEvents] = useState<any[]>([]);
   const { isConnected, lastEvent } = useEventSource('/api/events/stream', {
     onEvent: (event) => {
       if (event.type !== 'ping') {

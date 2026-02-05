@@ -1,5 +1,5 @@
-import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
+import { index, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 // Providers table
 export const providers = sqliteTable('providers', {
@@ -13,43 +13,47 @@ export const providers = sqliteTable('providers', {
 });
 
 // Sessions table
-export const sessions = sqliteTable('sessions', {
-  id: text('id').primaryKey(),
-  providerId: text('provider_id')
-    .notNull()
-    .references(() => providers.id),
-  projectPath: text('project_path').notNull(),
-  projectName: text('project_name').notNull(),
-  cwd: text('cwd'), // Working directory from session
-  gitBranch: text('git_branch'), // Git branch
-  version: text('version'), // Claude version
-  lastSummary: text('last_summary'), // Most recent summary
-  filesModified: text('files_modified'), // JSON array of file paths
-  foldersAccessed: text('folders_accessed'), // JSON array of folder paths
-  fileCount: integer('file_count').default(0), // Number of files touched
-  toolUsageCount: integer('tool_usage_count').default(0), // Number of tool calls
-  startTime: integer('start_time', { mode: 'timestamp' }).notNull(),
-  endTime: integer('end_time', { mode: 'timestamp' }),
-  lastActivity: integer('last_activity', { mode: 'timestamp' }), // Last file modification time
-  status: text('status', { enum: ['active', 'completed', 'error'] })
-    .notNull()
-    .default('active'),
-  messageCount: integer('message_count').default(0),
-  tokensInput: integer('tokens_input').default(0),
-  tokensOutput: integer('tokens_output').default(0),
-  estimatedCost: real('estimated_cost').default(0),
-  createdAt: integer('created_at', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: integer('updated_at', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
-}, (table) => ({
-  providerIdx: index('sessions_provider_idx').on(table.providerId),
-  startTimeIdx: index('sessions_start_time_idx').on(table.startTime),
-  statusIdx: index('sessions_status_idx').on(table.status),
-  lastActivityIdx: index('sessions_last_activity_idx').on(table.lastActivity),
-}));
+export const sessions = sqliteTable(
+  'sessions',
+  {
+    id: text('id').primaryKey(),
+    providerId: text('provider_id')
+      .notNull()
+      .references(() => providers.id),
+    projectPath: text('project_path').notNull(),
+    projectName: text('project_name').notNull(),
+    cwd: text('cwd'), // Working directory from session
+    gitBranch: text('git_branch'), // Git branch
+    version: text('version'), // Claude version
+    lastSummary: text('last_summary'), // Most recent summary
+    filesModified: text('files_modified'), // JSON array of file paths
+    foldersAccessed: text('folders_accessed'), // JSON array of folder paths
+    fileCount: integer('file_count').default(0), // Number of files touched
+    toolUsageCount: integer('tool_usage_count').default(0), // Number of tool calls
+    startTime: integer('start_time', { mode: 'timestamp' }).notNull(),
+    endTime: integer('end_time', { mode: 'timestamp' }),
+    lastActivity: integer('last_activity', { mode: 'timestamp' }), // Last file modification time
+    status: text('status', { enum: ['active', 'completed', 'error'] })
+      .notNull()
+      .default('active'),
+    messageCount: integer('message_count').default(0),
+    tokensInput: integer('tokens_input').default(0),
+    tokensOutput: integer('tokens_output').default(0),
+    estimatedCost: real('estimated_cost').default(0),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => ({
+    providerIdx: index('sessions_provider_idx').on(table.providerId),
+    startTimeIdx: index('sessions_start_time_idx').on(table.startTime),
+    statusIdx: index('sessions_status_idx').on(table.status),
+    lastActivityIdx: index('sessions_last_activity_idx').on(table.lastActivity),
+  })
+);
 
 // Messages table
 export const messages = sqliteTable('messages', {
@@ -120,9 +124,7 @@ export const errorLogs = sqliteTable('error_logs', {
     .references(() => sessions.id, { onDelete: 'cascade' }),
   message: text('message').notNull(),
   stack: text('stack'),
-  timestamp: integer('timestamp', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+  timestamp: integer('timestamp', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Prompt templates table
@@ -133,9 +135,7 @@ export const promptTemplates = sqliteTable('prompt_templates', {
   category: text('category').notNull(),
   template: text('template').notNull(),
   variables: text('variables').notNull(), // JSON string
-  createdAt: integer('created_at', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Types for inference

@@ -1,5 +1,5 @@
-import { Worker } from 'worker_threads';
-import path from 'path';
+import path from 'node:path';
+import { Worker } from 'node:worker_threads';
 import type { WorkerJob, WorkerResult } from '@/types';
 
 type WorkerCallback<T> = (result: T, error?: string) => void;

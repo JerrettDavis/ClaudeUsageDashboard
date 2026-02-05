@@ -1,8 +1,8 @@
-import { router, publicProcedure } from '../init';
+import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '@/lib/db/client';
-import { sessions, toolCalls, messages } from '@/lib/db/schema';
-import { eq, and, gte, lte, sql, desc } from 'drizzle-orm';
+import { messages, sessions, toolCalls } from '@/lib/db/schema';
+import { publicProcedure, router } from '../init';
 
 export const analyticsRouter = router({
   usageStats: publicProcedure
@@ -16,10 +16,7 @@ export const analyticsRouter = router({
     .query(async ({ input }) => {
       const { providerId, startDate, endDate } = input;
 
-      const conditions = [
-        gte(sessions.startTime, startDate),
-        lte(sessions.startTime, endDate),
-      ];
+      const conditions = [gte(sessions.startTime, startDate), lte(sessions.startTime, endDate)];
       if (providerId) conditions.push(eq(sessions.providerId, providerId));
 
       const where = and(...conditions);
@@ -59,8 +56,7 @@ export const analyticsRouter = router({
         totalSessions: Number(stats.totalSessions) || 0,
         totalTokensInput: Number(stats.totalTokensInput) || 0,
         totalTokensOutput: Number(stats.totalTokensOutput) || 0,
-        totalTokens:
-          Number(stats.totalTokensInput) + Number(stats.totalTokensOutput) || 0,
+        totalTokens: Number(stats.totalTokensInput) + Number(stats.totalTokensOutput) || 0,
         estimatedCost: Number(stats.totalCost) || 0,
         toolUsageBreakdown: toolStats.reduce(
           (acc, tool) => {
@@ -83,10 +79,7 @@ export const analyticsRouter = router({
     .query(async ({ input }) => {
       const { providerId, startDate, endDate } = input;
 
-      const conditions = [
-        gte(sessions.startTime, startDate),
-        lte(sessions.startTime, endDate),
-      ];
+      const conditions = [gte(sessions.startTime, startDate), lte(sessions.startTime, endDate)];
       if (providerId) conditions.push(eq(sessions.providerId, providerId));
 
       const where = and(...conditions);
@@ -123,10 +116,7 @@ export const analyticsRouter = router({
     .query(async ({ input }) => {
       const { providerId, startDate, endDate, limit } = input;
 
-      const conditions = [
-        gte(sessions.startTime, startDate),
-        lte(sessions.startTime, endDate),
-      ];
+      const conditions = [gte(sessions.startTime, startDate), lte(sessions.startTime, endDate)];
       if (providerId) conditions.push(eq(sessions.providerId, providerId));
 
       const where = and(...conditions);

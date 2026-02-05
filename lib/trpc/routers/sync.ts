@@ -1,6 +1,6 @@
-import { router, publicProcedure } from '../init';
 import { z } from 'zod';
 import { syncService } from '@/lib/services/sync';
+import { publicProcedure, router } from '../init';
 
 export const syncRouter = router({
   syncProvider: publicProcedure

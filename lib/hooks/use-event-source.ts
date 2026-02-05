@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface SSEEvent {
   type: string;
@@ -20,15 +20,15 @@ export function useEventSource(url: string, options: UseEventSourceOptions = {})
   const [isConnected, setIsConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState<SSEEvent | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  
+
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Store callbacks in refs to avoid dependency issues
   const onEventRef = useRef(options.onEvent);
   const onErrorRef = useRef(options.onError);
   const onOpenRef = useRef(options.onOpen);
-  
+
   // Update refs when callbacks change
   useEffect(() => {
     onEventRef.current = options.onEvent;
@@ -36,11 +36,7 @@ export function useEventSource(url: string, options: UseEventSourceOptions = {})
     onOpenRef.current = options.onOpen;
   }, [options.onEvent, options.onError, options.onOpen]);
 
-  const {
-    reconnect = true,
-    reconnectInterval = 3000,
-    maxReconnectAttempts = 10,
-  } = options;
+  const { reconnect = true, reconnectInterval = 3000, maxReconnectAttempts = 10 } = options;
 
   const connect = useCallback(() => {
     if (eventSourceRef.current) {
@@ -72,14 +68,14 @@ export function useEventSource(url: string, options: UseEventSourceOptions = {})
       console.error('[EventSource] Error:', error);
       setIsConnected(false);
       onErrorRef.current?.(error);
-      
+
       eventSource.close();
       eventSourceRef.current = null;
 
       if (reconnect && reconnectAttempts < maxReconnectAttempts) {
-        const backoffDelay = reconnectInterval * Math.pow(1.5, reconnectAttempts);
+        const backoffDelay = reconnectInterval * 1.5 ** reconnectAttempts;
         console.log(`[EventSource] Reconnecting in ${backoffDelay}ms`);
-        
+
         reconnectTimeoutRef.current = setTimeout(() => {
           setReconnectAttempts((prev) => prev + 1);
           connect();

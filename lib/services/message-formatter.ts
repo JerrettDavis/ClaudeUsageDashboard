@@ -29,10 +29,10 @@ export function formatMessageAsTerminal(msg: ClaudeMessage): string[] {
   if (msg.type === 'user') {
     // Format user input with ❯ prompt
     const content = msg.message.content;
-    
+
     // Handle content as array
     if (Array.isArray(content)) {
-      const textContent = content.find(c => c && c.type === 'text');
+      const textContent = content.find((c) => c && c.type === 'text');
       if (textContent?.text) {
         lines.push(`❯ ${textContent.text}`);
       }
@@ -49,10 +49,10 @@ export function formatMessageAsTerminal(msg: ClaudeMessage): string[] {
   if (msg.type === 'assistant') {
     const content = msg.message.content;
     const contentArray = Array.isArray(content) ? content : [content];
-    
+
     for (const item of contentArray) {
       if (!item) continue;
-      
+
       if (item.type === 'text' && item.text) {
         // Regular assistant text with ● bullet
         lines.push(`● ${item.text}`);
@@ -60,7 +60,7 @@ export function formatMessageAsTerminal(msg: ClaudeMessage): string[] {
         // Tool call with ● and tool name
         const name = item.name || 'Unknown';
         const input = item.input || {};
-        
+
         // Format based on common tool types
         if (name === 'Bash' || name === 'powershell') {
           const cmd = input.command || input.description || '';
@@ -85,7 +85,7 @@ export function formatMessageAsTerminal(msg: ClaudeMessage): string[] {
         const resultText = extractResultText(item.content);
         if (resultText) {
           const truncated = truncate(resultText, 100);
-          if (content.is_error) {
+          if (item.is_error) {
             lines.push(`  ⎿  Error: ${truncated}`);
           } else {
             lines.push(`  ⎿  ${truncated}`);
@@ -98,21 +98,23 @@ export function formatMessageAsTerminal(msg: ClaudeMessage): string[] {
   return lines;
 }
 
-function extractResultText(content: string | Array<{ type: string; text?: string }> | undefined): string {
+function extractResultText(
+  content: string | Array<{ type: string; text?: string }> | undefined
+): string {
   if (!content) return '';
-  
+
   if (typeof content === 'string') {
     return content.trim();
   }
-  
+
   if (Array.isArray(content)) {
     return content
-      .filter(c => c.type === 'text' && c.text)
-      .map(c => c.text)
+      .filter((c) => c.type === 'text' && c.text)
+      .map((c) => c.text)
       .join(' ')
       .trim();
   }
-  
+
   return '';
 }
 
@@ -120,14 +122,16 @@ function truncate(text: string, maxLength: number): string {
   // Remove newlines and extra whitespace
   const cleaned = text.replace(/\s+/g, ' ').trim();
   if (cleaned.length <= maxLength) return cleaned;
-  return cleaned.slice(0, maxLength) + '...';
+  return `${cleaned.slice(0, maxLength)}...`;
 }
 
 /**
  * Format a batch of messages with timestamps
  */
-export function formatMessagesWithTimestamps(messages: ClaudeMessage[]): Array<{ timestamp: string; lines: string[] }> {
-  return messages.map(msg => ({
+export function formatMessagesWithTimestamps(
+  messages: ClaudeMessage[]
+): Array<{ timestamp: string; lines: string[] }> {
+  return messages.map((msg) => ({
     timestamp: msg.timestamp || new Date().toISOString(),
     lines: formatMessageAsTerminal(msg),
   }));

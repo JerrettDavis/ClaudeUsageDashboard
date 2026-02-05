@@ -1,9 +1,6 @@
 'use client';
 
-import * as React from 'react';
-import { useRouter } from 'next/navigation';
 import { Command } from 'cmdk';
-import { trpc } from '@/lib/trpc/provider';
 import {
   Activity,
   BarChart3,
@@ -14,6 +11,9 @@ import {
   Settings,
   Terminal,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import * as React from 'react';
+import { trpc } from '@/lib/trpc/provider';
 
 interface CommandPaletteProps {
   open: boolean;
@@ -145,9 +145,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               {recentSessions.map((session) => (
                 <CommandItem
                   key={session.id}
-                  onSelect={() =>
-                    runCommand(() => router.push(`/sessions/${session.id}`))
-                  }
+                  onSelect={() => runCommand(() => router.push(`/sessions/${session.id}`))}
                   icon={<Activity className="h-4 w-4" />}
                 >
                   {session.projectName}

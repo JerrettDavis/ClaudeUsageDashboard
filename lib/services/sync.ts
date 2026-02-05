@@ -1,7 +1,7 @@
-import { providerRegistry } from '@/lib/providers';
+import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { providers } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { providerRegistry } from '@/lib/providers';
 
 export interface SyncResult {
   providerId: string;
@@ -62,7 +62,7 @@ export class SyncService {
         errors: result.errors,
         duration,
       };
-    } catch (error) {
+    } catch (_error) {
       const duration = Date.now() - startTime;
 
       return {
@@ -104,9 +104,7 @@ export class SyncService {
   /**
    * Check which providers are installed
    */
-  async checkInstallations(): Promise<
-    Array<{ providerId: string; installed: boolean }>
-  > {
+  async checkInstallations(): Promise<Array<{ providerId: string; installed: boolean }>> {
     const allProviders = providerRegistry.getAll();
     const results = [];
 
@@ -118,10 +116,7 @@ export class SyncService {
       });
 
       // Update database
-      await db
-        .update(providers)
-        .set({ installed })
-        .where(eq(providers.id, provider.id));
+      await db.update(providers).set({ installed }).where(eq(providers.id, provider.id));
     }
 
     return results;

@@ -1,13 +1,27 @@
-import { AIProvider, Session, SessionFilter, SessionDetail, SessionEvent, Disposable, UsageStats, DateRange, TokenMetrics, Usage, RunningProcess, LaunchConfig, ProcessHandle } from '@/types';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import { createParserPool, WorkerPool } from '@/lib/workers/pool';
-import type { ParseJobData, ParsedSession } from '@/lib/workers/parser.worker';
+import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { and, desc, eq, gte, lte } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
-import { sessions, messages, toolCalls, fileModifications, providers } from '@/lib/db/schema';
-import { eq, and, gte, lte, desc } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
+import { messages, sessions, toolCalls } from '@/lib/db/schema';
+import type { ParsedSession, ParseJobData } from '@/lib/workers/parser.worker';
+import { createParserPool, type WorkerPool } from '@/lib/workers/pool';
+import type {
+  AIProvider,
+  DateRange,
+  Disposable,
+  LaunchConfig,
+  ProcessHandle,
+  RunningProcess,
+  Session,
+  SessionDetail,
+  SessionEvent,
+  SessionFilter,
+  TokenMetrics,
+  Usage,
+  UsageStats,
+} from '@/types';
 
 /**
  * Claude AI Provider Implementation
@@ -31,7 +45,7 @@ export class ClaudeProvider implements AIProvider {
     if (!this.parserPool) {
       this.parserPool = createParserPool(4) as WorkerPool<ParseJobData, ParsedSession>;
     }
-    
+
     // Ensure config directory exists
     if (!fs.existsSync(this.configPath)) {
       throw new Error(`Claude config directory not found: ${this.configPath}`);
@@ -96,7 +110,7 @@ export class ClaudeProvider implements AIProvider {
     if (!this.parserPool) {
       throw new Error('Parser pool not initialized');
     }
-    
+
     const job = {
       id: randomUUID(),
       data: { sessionPath: filePath },
@@ -111,14 +125,14 @@ export class ClaudeProvider implements AIProvider {
   private extractProjectInfo(filePath: string): { name: string; path: string } {
     const projectsPath = this.getProjectsPath();
     const relativePath = path.relative(projectsPath, filePath);
-    
+
     // Get the first directory name (the project folder)
     // Claude stores paths like "C--git-myproject" for "C:/git/myproject"
     const projectDirName = relativePath.split(path.sep)[0];
-    
+
     // Restore the actual path: replace -- with : and - with /
-    let restoredPath = projectDirName.replace(/--/g, ':\\').replace(/-/g, '\\');
-    
+    const restoredPath = projectDirName.replace(/--/g, ':\\').replace(/-/g, '\\');
+
     // Project name is just the last part of the path
     const projectName = path.basename(restoredPath);
 
@@ -146,23 +160,20 @@ export class ClaudeProvider implements AIProvider {
     // Get file modification time for active status detection
     const fileStats = await fs.promises.stat(filePath);
     const lastActivity = fileStats.mtime;
-    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
     const isRecentlyModified = lastActivity.getTime() > fiveMinutesAgo;
 
     // Check if session already exists
-    const existing = await db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, sessionId))
-      .limit(1);
+    const existing = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
 
     const stats = this.calculateSessionStats(parsed);
 
     // Extract metadata from parsed data
     const metadata: Record<string, unknown> = {};
-    const lastSummary = parsed.summaries && parsed.summaries.length > 0
-      ? parsed.summaries[parsed.summaries.length - 1].summary 
-      : null;
+    const lastSummary =
+      parsed.summaries && parsed.summaries.length > 0
+        ? parsed.summaries[parsed.summaries.length - 1].summary
+        : null;
 
     const sessionData = {
       endTime: stats.endTime,
@@ -185,10 +196,7 @@ export class ClaudeProvider implements AIProvider {
 
     if (existing.length > 0) {
       // Update existing session
-      await db
-        .update(sessions)
-        .set(sessionData)
-        .where(eq(sessions.id, sessionId));
+      await db.update(sessions).set(sessionData).where(eq(sessions.id, sessionId));
     } else {
       // Insert new session
       await db.insert(sessions).values({
@@ -205,7 +213,7 @@ export class ClaudeProvider implements AIProvider {
     if (parsed.messages.length > 0) {
       const messageChunks = this.chunkArray(parsed.messages, 100);
       for (const chunk of messageChunks) {
-        const messageValues = chunk.map(msg => ({
+        const messageValues = chunk.map((msg) => ({
           id: randomUUID(),
           sessionId,
           parentId: msg.parentUuid || null,
@@ -214,11 +222,11 @@ export class ClaudeProvider implements AIProvider {
           timestamp: new Date(msg.timestamp),
           tokens: msg.tokens || 0,
         }));
-        
+
         // Insert batch, ignore conflicts
         try {
           await db.insert(messages).values(messageValues);
-        } catch (err) {
+        } catch (_err) {
           // Ignore duplicate errors
           console.warn(`Some messages already exist for session ${sessionId}`);
         }
@@ -229,17 +237,17 @@ export class ClaudeProvider implements AIProvider {
     if (parsed.toolCalls.length > 0) {
       const toolChunks = this.chunkArray(parsed.toolCalls, 100);
       for (const chunk of toolChunks) {
-        const toolValues = chunk.map(tool => ({
+        const toolValues = chunk.map((tool) => ({
           messageId: sessionId, // Note: we don't have message ID from worker
           toolName: tool.name,
           parameters: JSON.stringify(tool.input),
           success: true,
           timestamp: new Date(tool.timestamp),
         }));
-        
+
         try {
           await db.insert(toolCalls).values(toolValues);
-        } catch (err) {
+        } catch (_err) {
           // Ignore duplicate errors
         }
       }
@@ -259,13 +267,13 @@ export class ClaudeProvider implements AIProvider {
   private calculateSessionStats(parsed: ParsedSession) {
     const timestamps = parsed.messages
       .map((m) => new Date(m.timestamp).getTime())
-      .filter((t) => !isNaN(t));
+      .filter((t) => !Number.isNaN(t));
 
     const startTime = timestamps.length > 0 ? new Date(Math.min(...timestamps)) : new Date();
     const endTime = timestamps.length > 0 ? new Date(Math.max(...timestamps)) : undefined;
 
     const messageCount = parsed.messages.length;
-    
+
     let tokensInput = 0;
     let tokensOutput = 0;
 
@@ -277,7 +285,10 @@ export class ClaudeProvider implements AIProvider {
       }
     }
 
-    const estimatedCost = this.getCostEstimate({ inputTokens: tokensInput, outputTokens: tokensOutput });
+    const estimatedCost = this.getCostEstimate({
+      inputTokens: tokensInput,
+      outputTokens: tokensOutput,
+    });
 
     return {
       startTime,
@@ -315,11 +326,7 @@ export class ClaudeProvider implements AIProvider {
   }
 
   async getSession(id: string): Promise<SessionDetail> {
-    const session = await db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, id))
-      .limit(1);
+    const session = await db.select().from(sessions).where(eq(sessions.id, id)).limit(1);
 
     if (!session[0]) {
       throw new Error(`Session not found: ${id}`);
@@ -355,13 +362,7 @@ export class ClaudeProvider implements AIProvider {
     };
   }
 
-  private emitEvent(event: SessionEvent) {
-    for (const watcher of this.watchers) {
-      watcher(event);
-    }
-  }
-
-  async getUsageStats(range: DateRange): Promise<UsageStats> {
+  async getUsageStats(_range: DateRange): Promise<UsageStats> {
     // This will be implemented with analytics service
     return {
       totalSessions: 0,
@@ -391,10 +392,7 @@ export class ClaudeProvider implements AIProvider {
     const INPUT_COST_PER_TOKEN = 0.000003; // $3 per million
     const OUTPUT_COST_PER_TOKEN = 0.000015; // $15 per million
 
-    return (
-      usage.inputTokens * INPUT_COST_PER_TOKEN +
-      usage.outputTokens * OUTPUT_COST_PER_TOKEN
-    );
+    return usage.inputTokens * INPUT_COST_PER_TOKEN + usage.outputTokens * OUTPUT_COST_PER_TOKEN;
   }
 
   async detectRunningProcesses(): Promise<RunningProcess[]> {
@@ -402,7 +400,7 @@ export class ClaudeProvider implements AIProvider {
     return [];
   }
 
-  async launchSession(config: LaunchConfig): Promise<ProcessHandle> {
+  async launchSession(_config: LaunchConfig): Promise<ProcessHandle> {
     // Will be implemented in Phase 7
     throw new Error('Not implemented yet');
   }
@@ -412,19 +410,19 @@ export class ClaudeProvider implements AIProvider {
    */
   async fullSync(syncId?: string): Promise<{ processed: number; errors: number }> {
     const { syncStatusManager } = await import('@/lib/services/sync-status');
-    
+
     // Create sync tracking if ID not provided
     const trackingId = syncId || syncStatusManager.startSync(this.id);
-    
+
     try {
       // Phase 1: Scanning
       syncStatusManager.updateSync(trackingId, {
         phase: 'scanning',
         currentStep: 'Scanning session files...',
       });
-      
+
       const sessionFiles = await this.scanSessionFiles();
-      
+
       syncStatusManager.updateSync(trackingId, {
         totalFiles: sessionFiles.length,
         currentStep: `Found ${sessionFiles.length} sessions`,
@@ -442,19 +440,19 @@ export class ClaudeProvider implements AIProvider {
 
       for (const filePath of sessionFiles) {
         const fileName = path.basename(filePath);
-        
+
         try {
           syncStatusManager.updateSync(trackingId, {
             currentStep: `Parsing ${fileName}...`,
           });
-          
+
           const parsed = await this.parseSessionFile(filePath);
-          
+
           syncStatusManager.updateSync(trackingId, {
             phase: 'ingesting',
             currentStep: `Ingesting ${fileName}...`,
           });
-          
+
           await this.ingestSession(filePath, parsed);
           processed++;
 
@@ -465,8 +463,8 @@ export class ClaudeProvider implements AIProvider {
 
           if (processed % 10 === 0) {
             syncStatusManager.addLog(
-              trackingId, 
-              'info', 
+              trackingId,
+              'info',
               `Processed ${processed}/${sessionFiles.length} sessions`
             );
           }
@@ -474,7 +472,7 @@ export class ClaudeProvider implements AIProvider {
           console.error(`Error processing ${filePath}:`, error);
           syncStatusManager.addError(trackingId, fileName, error.message);
           errors++;
-          
+
           syncStatusManager.updateSync(trackingId, {
             processedFiles: processed + errors,
           });
@@ -482,11 +480,11 @@ export class ClaudeProvider implements AIProvider {
       }
 
       syncStatusManager.addLog(
-        trackingId, 
-        'info', 
+        trackingId,
+        'info',
         `Sync complete: ${processed} processed, ${errors} errors`
       );
-      
+
       if (!syncId) {
         syncStatusManager.completeSync(trackingId, errors === 0 ? 'completed' : 'error');
       }

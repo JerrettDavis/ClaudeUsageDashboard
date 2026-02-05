@@ -1,6 +1,6 @@
+import { eq } from 'drizzle-orm';
 import { db } from './client';
 import { providers } from './schema';
-import { eq } from 'drizzle-orm';
 
 /**
  * Seed initial data for development

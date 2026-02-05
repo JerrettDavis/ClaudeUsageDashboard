@@ -1,7 +1,7 @@
 'use client';
 
+import { Zap } from 'lucide-react';
 import { LiveLogsPanel } from '@/components/monitoring/live-logs-panel';
-import { Activity, Zap } from 'lucide-react';
 
 export default function MonitoringPage() {
   return (

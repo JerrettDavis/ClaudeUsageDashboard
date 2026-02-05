@@ -1,7 +1,7 @@
 'use client';
 
+import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LucideIcon } from 'lucide-react';
 
 interface StatCardProps {
   title: string;
@@ -23,15 +23,9 @@ export function StatCard({ title, value, description, icon: Icon, trend }: StatC
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
-        {description && (
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
-        )}
+        {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
         {trend && (
-          <p
-            className={`text-xs mt-1 ${
-              trend.isPositive ? 'text-green-600' : 'text-red-600'
-            }`}
-          >
+          <p className={`text-xs mt-1 ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
             {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}% from last period
           </p>
         )}

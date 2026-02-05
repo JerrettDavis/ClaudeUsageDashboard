@@ -1,19 +1,22 @@
 'use client';
 
-import { trpc } from '@/lib/trpc/provider';
+import { formatDistanceToNow } from 'date-fns';
+import { CheckCircle2, Clock, Loader2, Play, XCircle } from 'lucide-react';
 import { DashboardLayout } from '@/components/shared/dashboard-layout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, CheckCircle2, XCircle, Play, Clock } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { trpc } from '@/lib/trpc/provider';
 
 export default function SyncStatusPage() {
-  const { data: activeSyncs, refetch: refetchActive } = trpc.syncStatus.getActiveSyncs.useQuery(undefined, {
-    refetchInterval: 1000, // Poll every second
-  });
+  const { data: activeSyncs, refetch: refetchActive } = trpc.syncStatus.getActiveSyncs.useQuery(
+    undefined,
+    {
+      refetchInterval: 1000, // Poll every second
+    }
+  );
 
   const { data: history } = trpc.syncStatus.getHistory.useQuery({ limit: 20 });
 
@@ -36,9 +39,7 @@ export default function SyncStatusPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Sync Status</h1>
-            <p className="text-muted-foreground">
-              Monitor and manage data synchronization
-            </p>
+            <p className="text-muted-foreground">Monitor and manage data synchronization</p>
           </div>
           <Button
             onClick={() => handleStartSync('claude')}
@@ -66,7 +67,8 @@ export default function SyncStatusPage() {
                 <div>
                   <CardTitle>Active Sync</CardTitle>
                   <CardDescription>
-                    {activeSync.providerId} • Started {formatDistanceToNow(new Date(activeSync.startTime))} ago
+                    {activeSync.providerId} • Started{' '}
+                    {formatDistanceToNow(new Date(activeSync.startTime))} ago
                   </CardDescription>
                 </div>
                 <Badge variant="default" className="gap-1">
@@ -84,8 +86,12 @@ export default function SyncStatusPage() {
                     {activeSync.processedFiles} / {activeSync.totalFiles}
                   </span>
                 </div>
-                <Progress 
-                  value={activeSync.totalFiles > 0 ? (activeSync.processedFiles / activeSync.totalFiles) * 100 : 0} 
+                <Progress
+                  value={
+                    activeSync.totalFiles > 0
+                      ? (activeSync.processedFiles / activeSync.totalFiles) * 100
+                      : 0
+                  }
                 />
               </div>
 
@@ -114,21 +120,28 @@ export default function SyncStatusPage() {
                 <h3 className="text-sm font-medium">Recent Logs</h3>
                 <ScrollArea className="h-48 rounded-lg border bg-gray-50 dark:bg-gray-900 p-3">
                   <div className="space-y-1 font-mono text-xs">
-                    {activeSync.logs.slice(-20).reverse().map((log, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <span className="text-muted-foreground whitespace-nowrap">
-                          {new Date(log.timestamp).toLocaleTimeString()}
-                        </span>
-                        <span className={
-                          log.level === 'error' ? 'text-red-600' :
-                          log.level === 'warn' ? 'text-yellow-600' :
-                          'text-foreground'
-                        }>
-                          [{log.level.toUpperCase()}]
-                        </span>
-                        <span>{log.message}</span>
-                      </div>
-                    ))}
+                    {activeSync.logs
+                      .slice(-20)
+                      .reverse()
+                      .map((log, i) => (
+                        <div key={i} className="flex items-start gap-2">
+                          <span className="text-muted-foreground whitespace-nowrap">
+                            {new Date(log.timestamp).toLocaleTimeString()}
+                          </span>
+                          <span
+                            className={
+                              log.level === 'error'
+                                ? 'text-red-600'
+                                : log.level === 'warn'
+                                  ? 'text-yellow-600'
+                                  : 'text-foreground'
+                            }
+                          >
+                            [{log.level.toUpperCase()}]
+                          </span>
+                          <span>{log.message}</span>
+                        </div>
+                      ))}
                   </div>
                 </ScrollArea>
               </div>
@@ -177,12 +190,15 @@ export default function SyncStatusPage() {
             {history && history.length > 0 ? (
               <div className="space-y-3">
                 {history.map((sync) => {
-                  const duration = sync.endTime 
+                  const duration = sync.endTime
                     ? (new Date(sync.endTime).getTime() - new Date(sync.startTime).getTime()) / 1000
                     : 0;
 
                   return (
-                    <div key={sync.id} className="flex items-center justify-between rounded-lg border p-4">
+                    <div
+                      key={sync.id}
+                      className="flex items-center justify-between rounded-lg border p-4"
+                    >
                       <div className="flex items-center gap-4">
                         {sync.status === 'completed' ? (
                           <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -192,7 +208,8 @@ export default function SyncStatusPage() {
                         <div>
                           <p className="font-medium">{sync.providerId}</p>
                           <p className="text-sm text-muted-foreground">
-                            {formatDistanceToNow(new Date(sync.startTime))} ago • {duration.toFixed(1)}s
+                            {formatDistanceToNow(new Date(sync.startTime))} ago •{' '}
+                            {duration.toFixed(1)}s
                           </p>
                         </div>
                       </div>
@@ -203,7 +220,9 @@ export default function SyncStatusPage() {
                         </div>
                         <div>
                           <span className="text-muted-foreground">Success:</span>
-                          <span className="ml-2 font-medium text-green-600">{sync.successCount}</span>
+                          <span className="ml-2 font-medium text-green-600">
+                            {sync.successCount}
+                          </span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Errors:</span>

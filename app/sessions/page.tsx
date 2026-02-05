@@ -1,9 +1,13 @@
 'use client';
 
+import { formatDistanceToNow } from 'date-fns';
+import Link from 'next/link';
+import { useState } from 'react';
 import { DashboardLayout } from '@/components/shared/dashboard-layout';
-import { trpc } from '@/lib/trpc/provider';
+import { StatusBadge } from '@/components/shared/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -12,12 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { StatusBadge } from '@/components/shared/status-badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import Link from 'next/link';
-import { formatDistanceToNow } from 'date-fns';
-import { useState } from 'react';
-import { Filter } from 'lucide-react';
+import { trpc } from '@/lib/trpc/provider';
 
 export default function SessionsPage() {
   const [filter, setFilter] = useState<'all' | 'active' | 'completed' | 'error'>('all');
@@ -37,9 +36,7 @@ export default function SessionsPage() {
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Sessions</h1>
-          <p className="text-muted-foreground">
-            Browse and analyze your Claude AI sessions
-          </p>
+          <p className="text-muted-foreground">Browse and analyze your Claude AI sessions</p>
         </div>
 
         {/* Filters */}
@@ -110,9 +107,7 @@ export default function SessionsPage() {
                       <TableCell className="font-medium">
                         <div>
                           <p>{session.projectName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {session.projectPath}
-                          </p>
+                          <p className="text-xs text-muted-foreground">{session.projectPath}</p>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -129,10 +124,13 @@ export default function SessionsPage() {
                       <TableCell>
                         <div>
                           <p className="text-sm">
-                            {((session.tokensInput || 0) + (session.tokensOutput || 0)).toLocaleString()}
+                            {(
+                              (session.tokensInput || 0) + (session.tokensOutput || 0)
+                            ).toLocaleString()}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {(session.tokensInput || 0).toLocaleString()} in, {(session.tokensOutput || 0).toLocaleString()} out
+                            {(session.tokensInput || 0).toLocaleString()} in,{' '}
+                            {(session.tokensOutput || 0).toLocaleString()} out
                           </p>
                         </div>
                       </TableCell>

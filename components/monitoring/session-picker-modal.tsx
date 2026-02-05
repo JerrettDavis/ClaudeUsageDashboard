@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X, Terminal, Clock, MessageSquare, Activity } from 'lucide-react';
+import { Activity, Clock, MessageSquare, Terminal } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,8 +11,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
 import { useEventSource } from '@/lib/hooks/use-event-source';
+import { cn } from '@/lib/utils';
 
 interface Session {
   id: string;
@@ -37,31 +37,32 @@ export function SessionPickerModal({
   excludeIds = [],
 }: SessionPickerModalProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
 
   // Listen to event stream for active sessions
   useEventSource('/api/events/stream', {
     onEvent: (event) => {
       if (event.type === 'session:new' || event.type === 'session:update') {
         setSessions((prev) => {
-          const existing = prev.find(s => s.id === event.sessionId);
+          const existing = prev.find((s) => s.id === event.sessionId);
           if (existing) {
             // Update existing
-            return prev.map(s => 
-              s.id === event.sessionId 
-                ? { ...s, lastActivity: new Date(), status: 'active' }
-                : s
+            return prev.map((s) =>
+              s.id === event.sessionId ? { ...s, lastActivity: new Date(), status: 'active' } : s
             );
           } else {
             // Add new session
-            return [...prev, {
-              id: event.sessionId,
-              projectName: event.sessionId.slice(0, 8) + '...',
-              status: 'active' as const,
-              messageCount: 0,
-              lastActivity: new Date(),
-              startTime: new Date(),
-            }];
+            return [
+              ...prev,
+              {
+                id: event.sessionId,
+                projectName: `${event.sessionId.slice(0, 8)}...`,
+                status: 'active' as const,
+                messageCount: 0,
+                lastActivity: new Date(),
+                startTime: new Date(),
+              },
+            ];
           }
         });
       }
@@ -141,10 +142,8 @@ export function SessionPickerModal({
                           <span
                             className={cn(
                               'text-xs px-2 py-0.5 rounded font-mono',
-                              session.status === 'active' &&
-                                'bg-emerald-500/20 text-emerald-400',
-                              session.status === 'completed' &&
-                                'bg-zinc-500/20 text-zinc-400',
+                              session.status === 'active' && 'bg-emerald-500/20 text-emerald-400',
+                              session.status === 'completed' && 'bg-zinc-500/20 text-zinc-400',
                               session.status === 'error' && 'bg-red-500/20 text-red-400'
                             )}
                           >
@@ -163,11 +162,7 @@ export function SessionPickerModal({
                           </div>
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            <span>
-                              {getTimeSince(
-                                session.lastActivity || session.startTime
-                              )}
-                            </span>
+                            <span>{getTimeSince(session.lastActivity || session.startTime)}</span>
                           </div>
                         </div>
                       </div>
@@ -183,11 +178,7 @@ export function SessionPickerModal({
         </ScrollArea>
 
         <div className="flex justify-end gap-2 pt-4 border-t border-zinc-800">
-          <Button
-            variant="ghost"
-            onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-200"
-          >
+          <Button variant="ghost" onClick={onClose} className="text-zinc-400 hover:text-zinc-200">
             Cancel
           </Button>
         </div>

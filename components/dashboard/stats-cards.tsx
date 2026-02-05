@@ -1,9 +1,9 @@
 'use client';
 
-import { Activity, DollarSign, MessageSquare, Clock } from 'lucide-react';
+import { Activity, Clock, DollarSign, MessageSquare } from 'lucide-react';
 import { StatCard } from '@/components/shared/stat-card';
-import { trpc } from '@/lib/trpc/provider';
 import { Skeleton } from '@/components/ui/skeleton';
+import { trpc } from '@/lib/trpc/provider';
 
 export function StatsCards() {
   const dateRange = {

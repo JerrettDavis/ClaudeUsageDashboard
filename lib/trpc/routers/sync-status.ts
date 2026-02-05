@@ -1,17 +1,15 @@
 import { z } from 'zod';
-import { publicProcedure, router } from '../init';
-import { syncStatusManager } from '@/lib/services/sync-status';
 import { claudeProvider } from '@/lib/providers/claude';
+import { syncStatusManager } from '@/lib/services/sync-status';
+import { publicProcedure, router } from '../init';
 
 export const syncStatusRouter = router({
   /**
    * Get current sync status
    */
-  getStatus: publicProcedure
-    .input(z.object({ id: z.string() }))
-    .query(({ input }) => {
-      return syncStatusManager.getSync(input.id);
-    }),
+  getStatus: publicProcedure.input(z.object({ id: z.string() })).query(({ input }) => {
+    return syncStatusManager.getSync(input.id);
+  }),
 
   /**
    * Get all active syncs
@@ -48,7 +46,7 @@ export const syncStatusRouter = router({
 
       // Run sync in background without awaiting
       if (input.providerId === 'claude') {
-        claudeProvider.fullSync(syncId).catch(err => {
+        claudeProvider.fullSync(syncId).catch((err) => {
           console.error('Background sync failed:', err);
           syncStatusManager.completeSync(syncId, 'error');
         });

@@ -1,6 +1,6 @@
-import { parentPort } from 'worker_threads';
-import fs from 'fs';
-import readline from 'readline';
+import fs from 'node:fs';
+import readline from 'node:readline';
+import { parentPort } from 'node:worker_threads';
 import type { WorkerJob, WorkerResult } from '@/types';
 
 export interface ParseJobData {
@@ -55,7 +55,11 @@ interface ParsedFileSnapshot {
 
 parentPort?.on('message', async (job: WorkerJob<ParseJobData>) => {
   try {
-    const { sessionPath, filePath = sessionPath, incrementalFrom = 0 } = job.data as ParseJobDataWithFile;
+    const {
+      sessionPath,
+      filePath = sessionPath,
+      incrementalFrom = 0,
+    } = job.data as ParseJobDataWithFile;
     const actualPath = filePath || sessionPath;
 
     // Check file exists
@@ -116,10 +120,11 @@ async function parseJSONL(
           break;
 
         case 'user':
-        case 'assistant':
+        case 'assistant': {
           const message = parseMessage(entry);
           if (message) messages.push(message);
           break;
+        }
 
         case 'file-history-snapshot':
           if (entry.filePath) {
@@ -140,9 +145,9 @@ async function parseJSONL(
     }
   }
 
-  return { 
-    messages, 
-    summary, 
+  return {
+    messages,
+    summary,
     summaries: [],
     fileSnapshots,
     filesModified: [],

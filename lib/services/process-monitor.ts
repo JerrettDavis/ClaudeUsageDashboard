@@ -1,5 +1,5 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { exec } from 'node:child_process';
+import { promisify } from 'node:util';
 import { eventBus } from './event-bus';
 
 const execAsync = promisify(exec);
@@ -44,13 +44,13 @@ export class ProcessMonitorService {
   private async poll() {
     try {
       const processes = await this.detectClaudeProcesses();
-      
+
       // Detect new processes
       for (const proc of processes) {
         if (!this.knownProcesses.has(proc.pid)) {
           console.log(`[ProcessMonitor] New process detected: PID ${proc.pid}`);
           this.knownProcesses.set(proc.pid, proc);
-          
+
           eventBus.emitProcessEvent({
             type: 'process:start',
             pid: proc.pid,
@@ -78,7 +78,7 @@ export class ProcessMonitorService {
         if (!currentPids.has(pid)) {
           console.log(`[ProcessMonitor] Process ended: PID ${pid}`);
           this.knownProcesses.delete(pid);
-          
+
           eventBus.emitProcessEvent({
             type: 'process:end',
             pid,
@@ -96,7 +96,7 @@ export class ProcessMonitorService {
 
   private async detectClaudeProcesses(): Promise<RunningProcess[]> {
     const isWindows = process.platform === 'win32';
-    
+
     try {
       if (isWindows) {
         return await this.detectWindowsProcesses();
@@ -113,12 +113,12 @@ export class ProcessMonitorService {
     try {
       // Use Get-Process PowerShell command instead of wmic
       const { stdout } = await execAsync(
-        'powershell -Command "Get-Process | Where-Object {$_.ProcessName -like \'*node*\' -or $_.ProcessName -like \'*claude*\' -or $_.ProcessName -like \'*copilot*\'} | Select-Object Id,ProcessName,Path | ConvertTo-Json"',
+        "powershell -Command \"Get-Process | Where-Object {$_.ProcessName -like '*node*' -or $_.ProcessName -like '*claude*' -or $_.ProcessName -like '*copilot*'} | Select-Object Id,ProcessName,Path | ConvertTo-Json\"",
         { maxBuffer: 1024 * 1024 }
       );
 
       const processes: RunningProcess[] = [];
-      
+
       if (!stdout.trim()) return processes;
 
       const procs = JSON.parse(stdout);
@@ -146,10 +146,9 @@ export class ProcessMonitorService {
   private async detectUnixProcesses(): Promise<RunningProcess[]> {
     try {
       // Use ps to find Claude CLI processes
-      const { stdout } = await execAsync(
-        'ps aux | grep -E "(claude|copilot)" | grep -v grep',
-        { maxBuffer: 1024 * 1024 }
-      );
+      const { stdout } = await execAsync('ps aux | grep -E "(claude|copilot)" | grep -v grep', {
+        maxBuffer: 1024 * 1024,
+      });
 
       const processes: RunningProcess[] = [];
       const lines = stdout.split('\n').filter((line) => line.trim());
@@ -159,14 +158,16 @@ export class ProcessMonitorService {
         if (parts.length < 11) continue;
 
         const pid = parseInt(parts[1], 10);
-        if (isNaN(pid)) continue;
+        if (Number.isNaN(pid)) continue;
 
         const command = parts.slice(10).join(' ');
-        
+
         // Extract working directory (might need lsof or pwdx)
         let cwd: string | undefined;
         try {
-          const { stdout: cwdOut } = await execAsync(`pwdx ${pid} 2>/dev/null || lsof -p ${pid} 2>/dev/null | grep cwd`);
+          const { stdout: cwdOut } = await execAsync(
+            `pwdx ${pid} 2>/dev/null || lsof -p ${pid} 2>/dev/null | grep cwd`
+          );
           const cwdMatch = cwdOut.match(/:\s*(.+)/);
           if (cwdMatch) {
             cwd = cwdMatch[1].trim();
@@ -195,15 +196,15 @@ export class ProcessMonitorService {
     // Try to extract session ID from command line or working directory
     // Claude sessions typically have UUID-like identifiers
     const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-    
+
     const commandMatch = command.match(uuidRegex);
     if (commandMatch) return commandMatch[0];
-    
+
     if (cwd) {
       const cwdMatch = cwd.match(uuidRegex);
       if (cwdMatch) return cwdMatch[0];
     }
-    
+
     return undefined;
   }
 

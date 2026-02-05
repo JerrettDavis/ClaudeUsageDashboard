@@ -1,19 +1,23 @@
 #!/usr/bin/env tsx
-import { claudeProvider } from '../lib/providers/claude/index.js';
-import { syncService } from '../lib/services/sync.js';
 import { initializeDatabase } from '../lib/db/client.js';
 import { seedDatabase } from '../lib/db/seed.js';
+import { claudeProvider } from '../lib/providers/claude/index.js';
+import { syncService } from '../lib/services/sync.js';
 
 async function main() {
   console.log('🔄 Claude Usage Dashboard - Sync Tool\n');
   try {
     console.log('📊 Initializing database...');
     initializeDatabase();
-    try { await seedDatabase(); } catch (error) { }
+    try {
+      await seedDatabase();
+    } catch (_error) {}
     console.log('\n🔍 Checking provider installations...');
     const installations = await syncService.checkInstallations();
     for (const { providerId, installed } of installations) {
-      console.log(`  ${installed ? '✓' : '✗'} ${providerId}: ${installed ? 'Installed' : 'Not found'}`);
+      console.log(
+        `  ${installed ? '✓' : '✗'} ${providerId}: ${installed ? 'Installed' : 'Not found'}`
+      );
     }
     const claudeInstalled = installations.find((i) => i.providerId === 'claude')?.installed;
     if (!claudeInstalled) {

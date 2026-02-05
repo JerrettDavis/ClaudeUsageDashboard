@@ -1,14 +1,26 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Plus, X, Maximize2, Terminal, Home, Zap, ZapOff, ChevronDown, ChevronUp, Folder, Clock, MessageSquare, Coins } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Coins,
+  Folder,
+  Home,
+  Maximize2,
+  MessageSquare,
+  Plus,
+  Terminal,
+  X,
+  Zap,
+  ZapOff,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useEventSource } from '@/lib/hooks/use-event-source';
 import { cn } from '@/lib/utils';
 import { SessionPickerModal } from './session-picker-modal';
-import Link from 'next/link';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 
 // Global message cache to avoid re-fetching history
 const messageCache = new Map<string, Array<{ time: string; lines: string[] }>>();
@@ -45,7 +57,7 @@ function SessionTerminal({ sessionId, onRemove, onMaximize }: SessionTerminalPro
   });
   const scrollRef = useRef<HTMLDivElement>(null);
   const startTimeRef = useRef<Date>(new Date());
-  
+
   // Load message history on mount
   useEffect(() => {
     const loadHistory = async () => {
@@ -54,54 +66,52 @@ function SessionTerminal({ sessionId, onRemove, onMaximize }: SessionTerminalPro
       if (cached) {
         console.log(`[SessionTerminal] Using cached messages (${cached.length} messages)`);
         setMessages(cached);
-        
+
         // Update stats from cached messages
-        const totalChars = cached.reduce(
-          (sum, msg) => sum + msg.lines.join('').length,
-          0
-        );
-        
+        const totalChars = cached.reduce((sum, msg) => sum + msg.lines.join('').length, 0);
+
         setStats((prev) => ({
           ...prev,
           messageCount: cached.length,
           tokensInput: Math.floor(totalChars / 8),
           tokensOutput: Math.floor(totalChars / 8),
         }));
-        
+
         setIsLoadingHistory(false);
         return;
       }
-      
+
       // Otherwise fetch from API (most recent 100 messages)
       try {
         setIsLoadingHistory(true);
         const response = await fetch(`/api/sessions/${sessionId}/history?limit=100`);
-        
+
         if (response.ok) {
           const data = await response.json();
           const loadedMessages = data.messages || [];
-          
+
           // Cache the messages
           messageCache.set(sessionId, loadedMessages);
-          
+
           setMessages(loadedMessages);
           setHasMoreHistory(data.hasMore || false);
-          
+
           // Update stats from history
           const totalChars = loadedMessages.reduce(
-            (sum: number, msg: { lines: string[] }) => 
-              sum + msg.lines.join('').length,
+            (sum: number, msg: { lines: string[] }) => sum + msg.lines.join('').length,
             0
           );
-          
+
           setStats((prev) => ({
             ...prev,
             messageCount: loadedMessages.length,
             tokensInput: Math.floor(totalChars / 8),
             tokensOutput: Math.floor(totalChars / 8),
           }));
-          
-          console.log(`[SessionTerminal] Loaded ${loadedMessages.length} messages (hasMore: ${data.hasMore})`);
+
+          console.log(
+            `[SessionTerminal] Loaded ${loadedMessages.length} messages (hasMore: ${data.hasMore})`
+          );
         } else {
           console.warn(`[SessionTerminal] Failed to load history: ${response.status}`);
         }
@@ -111,31 +121,35 @@ function SessionTerminal({ sessionId, onRemove, onMaximize }: SessionTerminalPro
         setIsLoadingHistory(false);
       }
     };
-    
+
     loadHistory();
   }, [sessionId]);
-  
+
   // Load more messages
   const loadMoreMessages = async () => {
     if (isLoadingMore || !hasMoreHistory) return;
-    
+
     try {
       setIsLoadingMore(true);
       const currentOffset = messages.length;
-      const response = await fetch(`/api/sessions/${sessionId}/history?limit=100&offset=${currentOffset}`);
-      
+      const response = await fetch(
+        `/api/sessions/${sessionId}/history?limit=100&offset=${currentOffset}`
+      );
+
       if (response.ok) {
         const data = await response.json();
         const olderMessages = data.messages || [];
-        
+
         // Prepend older messages
         const updatedMessages = [...olderMessages, ...messages];
         messageCache.set(sessionId, updatedMessages);
-        
+
         setMessages(updatedMessages);
         setHasMoreHistory(data.hasMore || false);
-        
-        console.log(`[SessionTerminal] Loaded ${olderMessages.length} more messages (hasMore: ${data.hasMore})`);
+
+        console.log(
+          `[SessionTerminal] Loaded ${olderMessages.length} more messages (hasMore: ${data.hasMore})`
+        );
       }
     } catch (error) {
       console.error('[SessionTerminal] Error loading more messages:', error);
@@ -143,7 +157,7 @@ function SessionTerminal({ sessionId, onRemove, onMaximize }: SessionTerminalPro
       setIsLoadingMore(false);
     }
   };
-  
+
   // Update duration every second
   useEffect(() => {
     const interval = setInterval(() => {
@@ -151,7 +165,7 @@ function SessionTerminal({ sessionId, onRemove, onMaximize }: SessionTerminalPro
       const seconds = Math.floor(elapsed / 1000);
       const minutes = Math.floor(seconds / 60);
       const hours = Math.floor(minutes / 60);
-      
+
       let duration = '';
       if (hours > 0) {
         duration = `${hours}h ${minutes % 60}m`;
@@ -160,25 +174,25 @@ function SessionTerminal({ sessionId, onRemove, onMaximize }: SessionTerminalPro
       } else {
         duration = `${seconds}s`;
       }
-      
+
       setStats((prev) => ({ ...prev, duration }));
     }, 1000);
-    
+
     return () => clearInterval(interval);
   }, []);
-  
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
-  
+  }, []);
+
   useEventSource('/api/events/stream', {
     onEvent: (event) => {
       // Only show events for this session
       if (event.sessionId !== sessionId) return;
-      
+
       if (event.type === 'message:new' && event.terminalOutput) {
         setMessages((prev) => {
           const newMessages = [
@@ -188,13 +202,13 @@ function SessionTerminal({ sessionId, onRemove, onMaximize }: SessionTerminalPro
               lines: event.terminalOutput,
             },
           ];
-          
+
           // Update cache with new messages
           messageCache.set(sessionId, newMessages);
-          
+
           return newMessages;
         });
-        
+
         // Update stats
         setStats((prev) => ({
           ...prev,
@@ -204,7 +218,7 @@ function SessionTerminal({ sessionId, onRemove, onMaximize }: SessionTerminalPro
           tokensOutput: prev.tokensOutput + Math.floor(event.terminalOutput.join('').length / 4),
         }));
       }
-      
+
       // Update session details from events
       if (event.type === 'session:update' && event.data) {
         setStats((prev) => ({
@@ -215,7 +229,7 @@ function SessionTerminal({ sessionId, onRemove, onMaximize }: SessionTerminalPro
       }
     },
   });
-  
+
   // Calculate estimated cost (rough estimate: $15/1M input tokens, $75/1M output tokens for Claude Sonnet)
   useEffect(() => {
     const inputCost = (stats.tokensInput / 1_000_000) * 3;
@@ -283,19 +297,33 @@ function SessionTerminal({ sessionId, onRemove, onMaximize }: SessionTerminalPro
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
             <div className="flex items-center gap-2 text-zinc-400">
               <Clock className="h-3.5 w-3.5 text-amber-500" />
-              <span>Duration: <span className="text-amber-300 font-semibold">{stats.duration}</span></span>
+              <span>
+                Duration: <span className="text-amber-300 font-semibold">{stats.duration}</span>
+              </span>
             </div>
             <div className="flex items-center gap-2 text-zinc-400">
               <MessageSquare className="h-3.5 w-3.5 text-green-500" />
-              <span>Messages: <span className="text-green-300 font-semibold">{stats.messageCount}</span></span>
+              <span>
+                Messages: <span className="text-green-300 font-semibold">{stats.messageCount}</span>
+              </span>
             </div>
             <div className="flex items-center gap-2 text-zinc-400">
               <Terminal className="h-3.5 w-3.5 text-blue-500" />
-              <span>Tokens: <span className="text-blue-300 font-semibold">{(stats.tokensInput + stats.tokensOutput).toLocaleString()}</span></span>
+              <span>
+                Tokens:{' '}
+                <span className="text-blue-300 font-semibold">
+                  {(stats.tokensInput + stats.tokensOutput).toLocaleString()}
+                </span>
+              </span>
             </div>
             <div className="flex items-center gap-2 text-zinc-400">
               <Coins className="h-3.5 w-3.5 text-yellow-500" />
-              <span>Cost: <span className="text-yellow-300 font-semibold">${stats.estimatedCost.toFixed(4)}</span></span>
+              <span>
+                Cost:{' '}
+                <span className="text-yellow-300 font-semibold">
+                  ${stats.estimatedCost.toFixed(4)}
+                </span>
+              </span>
             </div>
           </div>
           {stats.projectPath && (
@@ -336,7 +364,7 @@ function SessionTerminal({ sessionId, onRemove, onMaximize }: SessionTerminalPro
                   </Button>
                 </div>
               )}
-              
+
               {messages.length === 0 ? (
                 <div className="text-zinc-600 text-center py-8 text-sm">
                   Waiting for activity...
@@ -350,7 +378,7 @@ function SessionTerminal({ sessionId, onRemove, onMaximize }: SessionTerminalPro
                         const isUser = line.startsWith('❯');
                         const isAssistant = line.startsWith('●');
                         const isContinuation = line.startsWith('⎿');
-                        
+
                         return (
                           <div
                             key={lineIdx}
@@ -389,7 +417,12 @@ export function TilingMonitor() {
   useEventSource('/api/events/stream', {
     onEvent: (event) => {
       // Track available sessions from any activity
-      if (event.sessionId && (event.type === 'session:new' || event.type === 'session:update' || event.type === 'message:new')) {
+      if (
+        event.sessionId &&
+        (event.type === 'session:new' ||
+          event.type === 'session:update' ||
+          event.type === 'message:new')
+      ) {
         setAvailableSessions((prev) => {
           if (!prev.includes(event.sessionId)) {
             return [...prev, event.sessionId];
@@ -397,9 +430,12 @@ export function TilingMonitor() {
           return prev;
         });
       }
-      
+
       // Auto-open: add new sessions when they first appear OR when they send their first message
-      if (autoOpen && (event.type === 'session:new' || (event.type === 'message:new' && event.sessionId))) {
+      if (
+        autoOpen &&
+        (event.type === 'session:new' || (event.type === 'message:new' && event.sessionId))
+      ) {
         const sessionId = event.sessionId;
         if (sessionId) {
           setSessions((prev) => {
@@ -411,7 +447,7 @@ export function TilingMonitor() {
           });
         }
       }
-      
+
       // Auto-close finished sessions
       if (event.type === 'session:end' && autoClose) {
         setSessions((prev) => prev.filter((id) => id !== event.sessionId));
@@ -471,14 +507,10 @@ export function TilingMonitor() {
             </Button>
           </Link>
           <Terminal className="h-5 w-5 text-cyan-400" />
-          <h1 className="text-lg font-semibold text-cyan-400 font-mono">
-            TILING SESSION MONITOR
-          </h1>
-          <span className="text-xs text-zinc-600 font-mono">
-            {sessions.length} active
-          </span>
+          <h1 className="text-lg font-semibold text-cyan-400 font-mono">TILING SESSION MONITOR</h1>
+          <span className="text-xs text-zinc-600 font-mono">{sessions.length} active</span>
         </div>
-        
+
         <div className="flex items-center gap-3">
           {/* Auto Open Toggle */}
           <button
@@ -489,24 +521,23 @@ export function TilingMonitor() {
               setAutoOpen(newValue);
             }}
             className={cn(
-              "flex items-center gap-2 px-3 py-2 rounded-md border transition-all",
-              autoOpen 
-                ? "bg-green-600/20 border-green-600/50 hover:bg-green-600/30" 
-                : "bg-zinc-800/50 border-zinc-700/50 hover:bg-zinc-800"
+              'flex items-center gap-2 px-3 py-2 rounded-md border transition-all',
+              autoOpen
+                ? 'bg-green-600/20 border-green-600/50 hover:bg-green-600/30'
+                : 'bg-zinc-800/50 border-zinc-700/50 hover:bg-zinc-800'
             )}
           >
-            <Zap className={cn(
-              "h-4 w-4",
-              autoOpen ? "text-green-400" : "text-zinc-500"
-            )} />
-            <span className={cn(
-              "text-xs font-mono font-semibold",
-              autoOpen ? "text-green-300" : "text-zinc-400"
-            )}>
+            <Zap className={cn('h-4 w-4', autoOpen ? 'text-green-400' : 'text-zinc-500')} />
+            <span
+              className={cn(
+                'text-xs font-mono font-semibold',
+                autoOpen ? 'text-green-300' : 'text-zinc-400'
+              )}
+            >
               AUTO-OPEN
             </span>
           </button>
-          
+
           {/* Auto Close Toggle */}
           <button
             type="button"
@@ -516,24 +547,23 @@ export function TilingMonitor() {
               setAutoClose(newValue);
             }}
             className={cn(
-              "flex items-center gap-2 px-3 py-2 rounded-md border transition-all",
-              autoClose 
-                ? "bg-red-600/20 border-red-600/50 hover:bg-red-600/30" 
-                : "bg-zinc-800/50 border-zinc-700/50 hover:bg-zinc-800"
+              'flex items-center gap-2 px-3 py-2 rounded-md border transition-all',
+              autoClose
+                ? 'bg-red-600/20 border-red-600/50 hover:bg-red-600/30'
+                : 'bg-zinc-800/50 border-zinc-700/50 hover:bg-zinc-800'
             )}
           >
-            <ZapOff className={cn(
-              "h-4 w-4",
-              autoClose ? "text-red-400" : "text-zinc-500"
-            )} />
-            <span className={cn(
-              "text-xs font-mono font-semibold",
-              autoClose ? "text-red-300" : "text-zinc-400"
-            )}>
+            <ZapOff className={cn('h-4 w-4', autoClose ? 'text-red-400' : 'text-zinc-500')} />
+            <span
+              className={cn(
+                'text-xs font-mono font-semibold',
+                autoClose ? 'text-red-300' : 'text-zinc-400'
+              )}
+            >
               AUTO-CLOSE
             </span>
           </button>
-          
+
           <Button
             onClick={addSession}
             className="bg-cyan-500 hover:bg-cyan-600 text-black font-mono"
@@ -550,9 +580,7 @@ export function TilingMonitor() {
           <div className="text-center space-y-4">
             <Terminal className="h-16 w-16 mx-auto text-zinc-700" />
             <div className="space-y-2">
-              <h2 className="text-xl font-semibold text-zinc-600">
-                No sessions monitored
-              </h2>
+              <h2 className="text-xl font-semibold text-zinc-600">No sessions monitored</h2>
               <p className="text-sm text-zinc-700">
                 Click "Add Session" to start monitoring Claude sessions in real-time
               </p>
@@ -586,28 +614,31 @@ export function TilingMonitor() {
             <span className="text-xs text-zinc-600 font-mono shrink-0">
               DETECTED ({availableSessions.length}):
             </span>
-            {availableSessions.slice(-15).reverse().map((sessionId) => (
-              <Button
-                key={sessionId}
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  if (!sessions.includes(sessionId)) {
-                    setSessions([...sessions, sessionId]);
-                  }
-                }}
-                className={cn(
-                  'font-mono text-xs h-7 shrink-0',
-                  sessions.includes(sessionId)
-                    ? 'text-cyan-400 bg-cyan-500/20'
-                    : 'text-zinc-600 hover:text-cyan-400 hover:bg-cyan-500/10'
-                )}
-                disabled={sessions.includes(sessionId)}
-              >
-                {sessionId.slice(0, 8)}
-                {sessions.includes(sessionId) && ' ✓'}
-              </Button>
-            ))}
+            {availableSessions
+              .slice(-15)
+              .reverse()
+              .map((sessionId) => (
+                <Button
+                  key={sessionId}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    if (!sessions.includes(sessionId)) {
+                      setSessions([...sessions, sessionId]);
+                    }
+                  }}
+                  className={cn(
+                    'font-mono text-xs h-7 shrink-0',
+                    sessions.includes(sessionId)
+                      ? 'text-cyan-400 bg-cyan-500/20'
+                      : 'text-zinc-600 hover:text-cyan-400 hover:bg-cyan-500/10'
+                  )}
+                  disabled={sessions.includes(sessionId)}
+                >
+                  {sessionId.slice(0, 8)}
+                  {sessions.includes(sessionId) && ' ✓'}
+                </Button>
+              ))}
           </div>
         </div>
       )}

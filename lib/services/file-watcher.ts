@@ -1,5 +1,5 @@
-import { readFile, readdir, stat } from 'fs/promises';
-import { join } from 'path';
+import { readdir, readFile, stat } from 'node:fs/promises';
+import { join } from 'node:path';
 import { eventBus } from './event-bus';
 import { formatMessageAsTerminal } from './message-formatter';
 
@@ -36,7 +36,7 @@ export class FileWatcherService {
 
     // Start polling
     this.pollInterval = setInterval(() => {
-      this.pollForChanges().catch(error => {
+      this.pollForChanges().catch((error) => {
         console.error('[FileWatcher] Polling error:', error);
       });
     }, this.POLL_INTERVAL_MS);
@@ -72,13 +72,13 @@ export class FileWatcherService {
         const dirPath = join(this.watchPath.replace(/\//g, '\\'), dir);
         try {
           const files = await readdir(dirPath);
-          const jsonlFiles = files.filter(f => f.endsWith('.jsonl'));
-          
+          const jsonlFiles = files.filter((f) => f.endsWith('.jsonl'));
+
           for (const file of jsonlFiles) {
             const filePath = join(dirPath, file).replace(/\\/g, '/');
             await this.initializeFile(filePath);
           }
-        } catch (error) {
+        } catch (_error) {
           // Skip directories we can't read
         }
       }
@@ -95,15 +95,15 @@ export class FileWatcherService {
       const stats = await stat(normalizedPath);
       const content = await readFile(normalizedPath, 'utf-8');
       const lines = content.split('\n').filter((line) => line.trim());
-      
+
       this.fileStates.set(filePath, {
         path: filePath,
         lineCount: lines.length,
         lastModified: stats.mtimeMs,
       });
-      
+
       console.log(`[FileWatcher] 📝 Tracking ${filePath.split('/').pop()} (${lines.length} lines)`);
-      
+
       // Mark this session as seen so we can detect new sessions later
       const sessionId = this.extractSessionId(filePath);
       if (sessionId) {
@@ -119,13 +119,13 @@ export class FileWatcherService {
       try {
         const normalizedPath = filePath.replace(/\//g, '\\');
         const stats = await stat(normalizedPath);
-        
+
         // Check if file was modified
         if (stats.mtimeMs > state.lastModified) {
           console.log(`[FileWatcher] 🔥 Change detected: ${filePath.split('/').pop()}`);
           await this.handleFileChanged(filePath, state);
         }
-      } catch (error) {
+      } catch (_error) {
         // File might have been deleted
         this.fileStates.delete(filePath);
       }
@@ -179,18 +179,20 @@ export class FileWatcherService {
       for (const line of newLines) {
         try {
           const entry = JSON.parse(line);
-          
+
           // Check for session end markers
           if (entry.type === 'end' || entry.event === 'end' || entry.status === 'completed') {
             hasEndMarker = true;
           }
-          
+
           // Format message as terminal output
           const terminalLines = formatMessageAsTerminal(entry);
-          
+
           if (terminalLines.length > 0) {
-            console.log(`[FileWatcher] ✓ Emitting ${entry.type} message with ${terminalLines.length} terminal lines`);
-            
+            console.log(
+              `[FileWatcher] ✓ Emitting ${entry.type} message with ${terminalLines.length} terminal lines`
+            );
+
             eventBus.emitMessageEvent({
               type: 'message:new',
               sessionId,
@@ -208,7 +210,7 @@ export class FileWatcherService {
       if (hasEndMarker) {
         console.log(`[FileWatcher] 🏁 Session ended: ${sessionId}`);
         eventBus.emitSessionEvent({
-          type: 'session:end',
+          type: 'session:ended',
           sessionId,
           data: {},
           timestamp: Date.now(),
@@ -223,7 +225,6 @@ export class FileWatcherService {
           timestamp: Date.now(),
         });
       }
-
     } catch (error) {
       console.error(`[FileWatcher] Error handling file change for ${filePath}:`, error);
     }

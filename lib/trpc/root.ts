@@ -1,7 +1,7 @@
 import { router } from './init';
-import { sessionsRouter } from './routers/sessions';
 import { analyticsRouter } from './routers/analytics';
 import { providersRouter } from './routers/providers';
+import { sessionsRouter } from './routers/sessions';
 import { syncRouter } from './routers/sync';
 import { syncStatusRouter } from './routers/sync-status';
 

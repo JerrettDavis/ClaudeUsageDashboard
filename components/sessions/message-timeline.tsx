@@ -1,8 +1,8 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
-import { User, Bot, Wrench } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { Bot, User, Wrench } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { trpc } from '@/lib/trpc/provider';
 
 interface MessageTimelineProps {
@@ -53,7 +53,9 @@ export function MessageTimeline({ sessionId }: MessageTimelineProps) {
           >
             <div
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                isUser ? 'bg-cyan-500/20 border border-cyan-500/30' : 'bg-emerald-500/20 border border-emerald-500/30'
+                isUser
+                  ? 'bg-cyan-500/20 border border-cyan-500/30'
+                  : 'bg-emerald-500/20 border border-emerald-500/30'
               }`}
             >
               {isUser ? (
@@ -82,7 +84,10 @@ export function MessageTimeline({ sessionId }: MessageTimelineProps) {
                 {contentBlocks.map((block: any, blockIndex: number) => {
                   if (block.type === 'text') {
                     return (
-                      <div key={blockIndex} className="border border-zinc-800 bg-zinc-900/30 rounded p-4">
+                      <div
+                        key={blockIndex}
+                        className="border border-zinc-800 bg-zinc-900/30 rounded p-4"
+                      >
                         <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">
                           {block.text}
                         </p>
@@ -98,7 +103,9 @@ export function MessageTimeline({ sessionId }: MessageTimelineProps) {
                       >
                         <div className="flex items-center gap-2 mb-3">
                           <Wrench className="h-4 w-4 text-amber-400" />
-                          <p className="text-sm font-semibold font-mono text-amber-400">{block.name}</p>
+                          <p className="text-sm font-semibold font-mono text-amber-400">
+                            {block.name}
+                          </p>
                         </div>
                         <pre className="text-xs overflow-x-auto text-zinc-400 font-mono bg-black/20 p-3 rounded">
                           {JSON.stringify(block.input, null, 2)}
@@ -113,7 +120,9 @@ export function MessageTimeline({ sessionId }: MessageTimelineProps) {
                         key={blockIndex}
                         className="rounded border border-emerald-500/40 bg-emerald-500/5 p-4"
                       >
-                        <p className="text-xs font-semibold mb-2 font-mono text-emerald-400">Tool Result</p>
+                        <p className="text-xs font-semibold mb-2 font-mono text-emerald-400">
+                          Tool Result
+                        </p>
                         <pre className="text-xs overflow-x-auto text-zinc-400 font-mono bg-black/20 p-3 rounded">
                           {typeof block.content === 'string'
                             ? block.content

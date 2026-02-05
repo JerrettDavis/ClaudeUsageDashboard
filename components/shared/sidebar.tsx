@@ -1,11 +1,19 @@
 'use client';
 
+import {
+  Activity,
+  BarChart3,
+  ChevronLeft,
+  ChevronRight,
+  Settings,
+  Terminal,
+  Zap,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Terminal, Activity, BarChart3, Settings, ChevronRight, ChevronLeft, Zap } from 'lucide-react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from './theme-toggle';
-import { useState, useEffect } from 'react';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Activity },
@@ -41,7 +49,7 @@ export function Sidebar() {
         )}
         {!isExpanded && <Terminal className="h-5 w-5 text-cyan-400" />}
       </div>
-      
+
       <nav className="flex-1 space-y-1 px-3 py-4">
         {navigation.map((item) => {
           const isActive = pathname?.startsWith(item.href);
@@ -57,26 +65,18 @@ export function Sidebar() {
               )}
             >
               <item.icon className={cn('h-4 w-4 shrink-0', isActive && 'text-cyan-400')} />
-              {isExpanded && (
-                <span className="text-xs">
-                  {item.name}
-                </span>
-              )}
+              {isExpanded && <span className="text-xs">{item.name}</span>}
             </Link>
           );
         })}
       </nav>
-      
+
       <div className="border-t border-zinc-800 p-3">
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="w-full flex items-center justify-center rounded p-2 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300 transition-colors"
         >
-          {isExpanded ? (
-            <ChevronLeft className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
+          {isExpanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </button>
         {isExpanded && (
           <div className="mt-2 flex items-center justify-between">

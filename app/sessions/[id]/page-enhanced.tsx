@@ -1,12 +1,12 @@
 'use client';
 
+import { formatDistanceToNow } from 'date-fns';
+import { Clock, Code, DollarSign, Files, Folder, GitBranch, Terminal, Zap } from 'lucide-react';
 import { use } from 'react';
-import { trpc } from '@/lib/trpc/provider';
+import { MessageTimeline } from '@/components/sessions/message-timeline';
 import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { StatusBadge } from '@/components/shared/status-badge';
-import { MessageTimeline } from '@/components/sessions/message-timeline';
-import { Files, Folder, Terminal, Zap, Clock, DollarSign, GitBranch, Code } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { trpc } from '@/lib/trpc/provider';
 
 export default function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -31,8 +31,12 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
         <div className="p-6">
           <div className="border border-zinc-800 bg-zinc-900/50 rounded p-6 text-center">
             <Terminal className="h-12 w-12 text-zinc-700 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-zinc-400 mb-2 font-mono">Session Not Found</h2>
-            <p className="text-sm text-zinc-600 font-mono">The requested session could not be located.</p>
+            <h2 className="text-lg font-semibold text-zinc-400 mb-2 font-mono">
+              Session Not Found
+            </h2>
+            <p className="text-sm text-zinc-600 font-mono">
+              The requested session could not be located.
+            </p>
           </div>
         </div>
       </DashboardLayout>
@@ -82,13 +86,25 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
         {(session.cwd || session.gitBranch || session.version) && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {session.cwd && (
-              <MetadataCard icon={<Folder className="h-4 w-4 text-cyan-400" />} label="Working Directory" value={session.cwd} />
+              <MetadataCard
+                icon={<Folder className="h-4 w-4 text-cyan-400" />}
+                label="Working Directory"
+                value={session.cwd}
+              />
             )}
             {session.gitBranch && (
-              <MetadataCard icon={<GitBranch className="h-4 w-4 text-emerald-400" />} label="Git Branch" value={session.gitBranch} />
+              <MetadataCard
+                icon={<GitBranch className="h-4 w-4 text-emerald-400" />}
+                label="Git Branch"
+                value={session.gitBranch}
+              />
             )}
             {session.version && (
-              <MetadataCard icon={<Code className="h-4 w-4 text-amber-400" />} label="Claude Version" value={session.version} />
+              <MetadataCard
+                icon={<Code className="h-4 w-4 text-amber-400" />}
+                label="Claude Version"
+                value={session.version}
+              />
             )}
           </div>
         )}
@@ -100,7 +116,9 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
               <h2 className="text-sm font-semibold text-zinc-400 font-mono">SESSION SUMMARY</h2>
             </div>
             <div className="p-4">
-              <p className="text-sm text-zinc-300 font-mono leading-relaxed">{session.lastSummary}</p>
+              <p className="text-sm text-zinc-300 font-mono leading-relaxed">
+                {session.lastSummary}
+              </p>
             </div>
           </div>
         )}
@@ -122,7 +140,10 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
                 <div className="p-4 max-h-[400px] overflow-y-auto">
                   <div className="space-y-1">
                     {filesModified.map((file: string, idx: number) => (
-                      <div key={idx} className="text-xs text-zinc-400 font-mono hover:text-cyan-400 transition-colors py-1 px-2 hover:bg-zinc-800/50 rounded">
+                      <div
+                        key={idx}
+                        className="text-xs text-zinc-400 font-mono hover:text-cyan-400 transition-colors py-1 px-2 hover:bg-zinc-800/50 rounded"
+                      >
                         {file}
                       </div>
                     ))}
@@ -144,7 +165,10 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
                 <div className="p-4 max-h-[300px] overflow-y-auto">
                   <div className="space-y-1">
                     {foldersAccessed.map((folder: string, idx: number) => (
-                      <div key={idx} className="text-xs text-zinc-400 font-mono hover:text-emerald-400 transition-colors py-1 px-2 hover:bg-zinc-800/50 rounded">
+                      <div
+                        key={idx}
+                        className="text-xs text-zinc-400 font-mono hover:text-emerald-400 transition-colors py-1 px-2 hover:bg-zinc-800/50 rounded"
+                      >
                         {folder}
                       </div>
                     ))}
@@ -183,7 +207,15 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
   );
 }
 
-function MetadataCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function MetadataCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="border border-zinc-800 bg-zinc-900/50 rounded p-3">
       <div className="flex items-center gap-2 mb-1">

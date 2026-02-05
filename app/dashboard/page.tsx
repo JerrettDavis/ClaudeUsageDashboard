@@ -1,13 +1,21 @@
 'use client';
 
-import { DashboardLayout } from '@/components/shared/dashboard-layout';
-import { Button } from '@/components/ui/button';
-import { trpc } from '@/lib/trpc/provider';
-import { RefreshCw, Terminal, Zap, DollarSign, FileText, Play, Activity, Clock } from 'lucide-react';
-import { useState } from 'react';
-import Link from 'next/link';
-import { StatusBadge } from '@/components/shared/status-badge';
 import { formatDistanceToNow } from 'date-fns';
+import {
+  Activity,
+  Clock,
+  DollarSign,
+  FileText,
+  Play,
+  RefreshCw,
+  Terminal,
+  Zap,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
+import { DashboardLayout } from '@/components/shared/dashboard-layout';
+import { StatusBadge } from '@/components/shared/status-badge';
+import { trpc } from '@/lib/trpc/provider';
 
 export default function DashboardPage() {
   const [isSyncing, setIsSyncing] = useState(false);
@@ -98,7 +106,7 @@ export default function DashboardPage() {
             <div className="p-4 space-y-2">
               <ActionButton
                 icon={<RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />}
-                label={isSyncing ? "Syncing..." : "Sync Claude Data"}
+                label={isSyncing ? 'Syncing...' : 'Sync Claude Data'}
                 onClick={handleSync}
                 disabled={isSyncing}
                 variant="cyan"
@@ -112,7 +120,7 @@ export default function DashboardPage() {
               <ActionButton
                 icon={<FileText className="h-4 w-4" />}
                 label="View All Sessions"
-                onClick={() => window.location.href = '/sessions'}
+                onClick={() => (window.location.href = '/sessions')}
                 variant="default"
               />
             </div>
@@ -195,9 +203,7 @@ export default function DashboardPage() {
                     <td className="px-4 py-3 text-zinc-500">
                       {new Date(session.startTime).toLocaleString()}
                     </td>
-                    <td className="px-4 py-3 text-right text-zinc-400">
-                      {session.messageCount}
-                    </td>
+                    <td className="px-4 py-3 text-right text-zinc-400">{session.messageCount}</td>
                     <td className="px-4 py-3 text-right text-zinc-400">
                       {((session.tokensInput || 0) + (session.tokensOutput || 0)).toLocaleString()}
                     </td>
@@ -208,7 +214,10 @@ export default function DashboardPage() {
                 ))}
                 {sessionsList.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-zinc-600 font-mono text-xs">
+                    <td
+                      colSpan={6}
+                      className="px-4 py-8 text-center text-zinc-600 font-mono text-xs"
+                    >
                       No sessions found. Click "Sync Claude Data" to import sessions.
                     </td>
                   </tr>
@@ -222,7 +231,15 @@ export default function DashboardPage() {
   );
 }
 
-function MetricItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
+function MetricItem({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+}) {
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
@@ -250,7 +267,8 @@ function ActionButton({
   const variants = {
     default: 'border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800',
     cyan: 'border-cyan-500/30 hover:border-cyan-500/50 hover:bg-cyan-500/10 text-cyan-400',
-    green: 'border-emerald-500/30 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-emerald-400',
+    green:
+      'border-emerald-500/30 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-emerald-400',
   };
 
   return (

@@ -1,8 +1,7 @@
 'use client';
 
-import { Terminal, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { trpc } from '@/lib/trpc/provider';
-import { StatusBadge } from './status-badge';
 import { ConnectionStatus } from './connection-status';
 
 export function TopBar({ onCommandOpen }: { onCommandOpen: () => void }) {
@@ -37,18 +36,14 @@ export function TopBar({ onCommandOpen }: { onCommandOpen: () => void }) {
       {activeSessions && activeSessions.length > 0 && (
         <div className="border-t border-zinc-800/50 bg-zinc-900/50 px-4 py-2">
           <div className="flex items-center gap-4 overflow-x-auto scrollbar-hide">
-            <span className="text-xs font-semibold text-zinc-500 font-mono shrink-0">
-              ACTIVE:
-            </span>
+            <span className="text-xs font-semibold text-zinc-500 font-mono shrink-0">ACTIVE:</span>
             {activeSessions.map((session) => (
               <div
                 key={session.id}
                 className="flex items-center gap-2 rounded border border-cyan-500/20 bg-cyan-500/5 px-2 py-1 shrink-0"
               >
                 <div className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                <span className="text-xs text-zinc-300 font-mono">
-                  {session.projectName}
-                </span>
+                <span className="text-xs text-zinc-300 font-mono">{session.projectName}</span>
               </div>
             ))}
           </div>

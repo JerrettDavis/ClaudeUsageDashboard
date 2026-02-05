@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { eventBus } from '@/lib/services/event-bus';
 import { fileWatcher } from '@/lib/services/file-watcher';
 import { processMonitor } from '@/lib/services/process-monitor';
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   await ensureServicesStarted();
 
   const encoder = new TextEncoder();
-  
+
   const stream = new ReadableStream({
     start(controller) {
       console.log('[SSE] New client connected');
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
-      'Connection': 'keep-alive',
+      Connection: 'keep-alive',
       'X-Accel-Buffering': 'no', // Disable nginx buffering
     },
   });

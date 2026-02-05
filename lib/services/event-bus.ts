@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 
 export type SessionEvent = {
   type: 'session:new' | 'session:update' | 'session:ended';

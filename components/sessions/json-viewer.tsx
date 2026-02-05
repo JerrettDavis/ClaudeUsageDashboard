@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { ChevronDown, ChevronRight, FileCode } from 'lucide-react';
+import { useState } from 'react';
 
 interface JsonViewerProps {
   sessionId: string;
@@ -23,9 +23,7 @@ export function JsonViewer({ sessionId, jsonlPath }: JsonViewerProps) {
     try {
       // In a real implementation, you'd fetch the JSONL file
       // For now, we'll show a placeholder
-      setJsonlData([
-        { type: 'placeholder', message: 'JSONL viewer coming soon...' }
-      ]);
+      setJsonlData([{ type: 'placeholder', message: 'JSONL viewer coming soon...' }]);
       setIsExpanded(true);
     } catch (error) {
       console.error('Failed to load JSONL:', error);

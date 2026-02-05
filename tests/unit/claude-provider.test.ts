@@ -1,16 +1,13 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import path from 'path';
-import { ClaudeProvider } from '@/lib/providers/claude';
-import { db } from '@/lib/db/client';
-import { sessions, messages } from '@/lib/db/schema';
+import path from 'node:path';
 import { eq } from 'drizzle-orm';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { db } from '@/lib/db/client';
+import { messages, sessions } from '@/lib/db/schema';
+import { ClaudeProvider } from '@/lib/providers/claude';
 
 describe('ClaudeProvider', () => {
   let provider: ClaudeProvider;
-  const testFixturePath = path.join(
-    process.cwd(),
-    'tests/fixtures/sample-session.jsonl'
-  );
+  const testFixturePath = path.join(process.cwd(), 'tests/fixtures/sample-session.jsonl');
 
   beforeAll(async () => {
     // Use in-memory database for tests
@@ -91,11 +88,7 @@ describe('ClaudeProvider', () => {
       expect(sessionId).toBeDefined();
 
       // Verify session was inserted
-      const session = await db
-        .select()
-        .from(sessions)
-        .where(eq(sessions.id, sessionId))
-        .limit(1);
+      const session = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
 
       expect(session.length).toBe(1);
       expect(session[0].providerId).toBe('claude');
@@ -117,11 +110,7 @@ describe('ClaudeProvider', () => {
       const parsed = await provider.parseSessionFile(testFixturePath);
       const sessionId = await provider.ingestSession(testFixturePath, parsed);
 
-      const session = await db
-        .select()
-        .from(sessions)
-        .where(eq(sessions.id, sessionId))
-        .limit(1);
+      const session = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
 
       expect(session[0].messageCount).toBeGreaterThan(0);
       expect(session[0].tokensInput).toBeGreaterThan(0);

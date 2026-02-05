@@ -1,17 +1,19 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { WorkerPool } from '@/lib/workers/pool';
-import path from 'path';
-import fs from 'fs';
+
+interface ParseResult {
+  messages: Array<{ role: string; content: unknown }>;
+}
 
 describe('WorkerPool', () => {
   let testFile: string;
 
   beforeEach(() => {
     testFile = path.join(__dirname, '../fixtures/pool-test.jsonl');
-    const testData = [
-      { type: 'user', content: 'Test', timestamp: '2024-01-01T00:00:00Z' },
-    ];
-    fs.writeFileSync(testFile, testData.map(d => JSON.stringify(d)).join('\n'));
+    const testData = [{ type: 'user', content: 'Test', timestamp: '2024-01-01T00:00:00Z' }];
+    fs.writeFileSync(testFile, testData.map((d) => JSON.stringify(d)).join('\n'));
   });
 
   afterEach(() => {
@@ -44,7 +46,7 @@ describe('WorkerPool', () => {
       data: { sessionPath: testFile },
     };
 
-    const result = await pool.execute(job);
+    const result = (await pool.execute(job)) as ParseResult;
 
     expect(result).toBeDefined();
     expect(result.messages).toBeDefined();
@@ -60,9 +62,12 @@ describe('WorkerPool', () => {
     });
 
     // Create multiple test files
-    const files = [1, 2, 3, 4].map(i => {
+    const files = [1, 2, 3, 4].map((i) => {
       const file = path.join(__dirname, `../fixtures/pool-test-${i}.jsonl`);
-      fs.writeFileSync(file, JSON.stringify({ type: 'user', content: `Test ${i}`, timestamp: new Date().toISOString() }));
+      fs.writeFileSync(
+        file,
+        JSON.stringify({ type: 'user', content: `Test ${i}`, timestamp: new Date().toISOString() })
+      );
       return file;
     });
 
@@ -72,15 +77,15 @@ describe('WorkerPool', () => {
       data: { sessionPath: file },
     }));
 
-    const results = await Promise.all(jobs.map(job => pool.execute(job)));
+    const results = (await Promise.all(jobs.map((job) => pool.execute(job)))) as ParseResult[];
 
     expect(results).toHaveLength(4);
-    results.forEach(result => {
+    results.forEach((result) => {
       expect(result.messages).toBeDefined();
     });
 
     // Cleanup
-    files.forEach(file => fs.unlinkSync(file));
+    files.forEach((file) => fs.unlinkSync(file));
     await pool.terminate();
   }, 15000);
 

@@ -1,11 +1,11 @@
 'use client';
 
+import { Home, Terminal, Wifi } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
-import { Terminal, Wifi, Home } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useEventSource } from '@/lib/hooks/use-event-source';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 
 export function LiveLogsPanel() {
   const [events, setEvents] = useState<any[]>([]);
@@ -32,19 +32,23 @@ export function LiveLogsPanel() {
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 bg-zinc-900">
         <div className="flex items-center gap-2">
           <Link href="/dashboard">
-            <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-cyan-400 h-8 w-8 p-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-zinc-400 hover:text-cyan-400 h-8 w-8 p-0"
+            >
               <Home className="h-4 w-4" />
             </Button>
           </Link>
           <Terminal className="h-4 w-4 text-cyan-400" />
           <h2 className="text-sm font-semibold text-zinc-400 font-mono">LIVE LOGS</h2>
-          <div className={cn(
-            "h-2 w-2 rounded-full",
-            isConnected ? "bg-cyan-400 animate-pulse" : "bg-zinc-600"
-          )} />
-          <span className="text-xs text-zinc-600 font-mono">
-            {events.length} events
-          </span>
+          <div
+            className={cn(
+              'h-2 w-2 rounded-full',
+              isConnected ? 'bg-cyan-400 animate-pulse' : 'bg-zinc-600'
+            )}
+          />
+          <span className="text-xs text-zinc-600 font-mono">{events.length} events</span>
         </div>
         <div className="flex items-center gap-2">
           {isConnected ? (
@@ -82,13 +86,15 @@ export function LiveLogsPanel() {
               <span className="text-zinc-600 shrink-0">
                 {new Date(event.timestamp).toLocaleTimeString()}
               </span>
-              <span className={cn(
-                "shrink-0 uppercase",
-                event.type?.includes('session') && "text-cyan-400",
-                event.type?.includes('process:start') && "text-emerald-400",
-                event.type?.includes('process:end') && "text-rose-400",
-                event.type?.includes('message') && "text-amber-400"
-              )}>
+              <span
+                className={cn(
+                  'shrink-0 uppercase',
+                  event.type?.includes('session') && 'text-cyan-400',
+                  event.type?.includes('process:start') && 'text-emerald-400',
+                  event.type?.includes('process:end') && 'text-rose-400',
+                  event.type?.includes('message') && 'text-amber-400'
+                )}
+              >
                 [{event.type}]
               </span>
               <span className="text-zinc-400 break-words flex-1">
@@ -102,15 +108,15 @@ export function LiveLogsPanel() {
                       const isUser = line.startsWith('❯');
                       const isAssistant = line.startsWith('●');
                       const isContinuation = line.startsWith('⎿');
-                      
+
                       return (
-                        <div 
+                        <div
                           key={idx}
                           className={cn(
-                            isUser && "text-cyan-300",
-                            isAssistant && "text-emerald-300",
-                            isContinuation && "text-amber-300",
-                            !isUser && !isAssistant && !isContinuation && "text-zinc-400"
+                            isUser && 'text-cyan-300',
+                            isAssistant && 'text-emerald-300',
+                            isContinuation && 'text-amber-300',
+                            !isUser && !isAssistant && !isContinuation && 'text-zinc-400'
                           )}
                         >
                           {line}
@@ -119,11 +125,14 @@ export function LiveLogsPanel() {
                     })}
                   </div>
                 )}
-                {event.type === 'message:new' && !event.terminalOutput && 
-                  `message`
-                }
-                {!['process:start', 'process:end', 'session:new', 'session:update', 'message:new'].includes(event.type) && 
-                  JSON.stringify(event.data || event, null, 0)}
+                {event.type === 'message:new' && !event.terminalOutput && `message`}
+                {![
+                  'process:start',
+                  'process:end',
+                  'session:new',
+                  'session:update',
+                  'message:new',
+                ].includes(event.type) && JSON.stringify(event.data || event, null, 0)}
               </span>
             </div>
           ))
@@ -132,4 +141,3 @@ export function LiveLogsPanel() {
     </div>
   );
 }
-

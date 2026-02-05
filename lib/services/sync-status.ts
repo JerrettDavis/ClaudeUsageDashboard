@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 
 export interface SyncProgress {
   id: string;
@@ -93,13 +93,13 @@ class SyncStatusManager extends EventEmitter {
     progress.status = status;
     progress.phase = 'complete';
     progress.endTime = new Date();
-    
+
     const duration = progress.endTime.getTime() - progress.startTime.getTime();
     this.addLog(id, 'info', `Sync ${status} in ${(duration / 1000).toFixed(1)}s`);
 
     this.activeSyncs.delete(id);
     this.completedSyncs.unshift(progress);
-    
+
     // Keep only last N completed syncs
     if (this.completedSyncs.length > this.maxCompletedHistory) {
       this.completedSyncs = this.completedSyncs.slice(0, this.maxCompletedHistory);
@@ -112,7 +112,7 @@ class SyncStatusManager extends EventEmitter {
    * Get sync status
    */
   getSync(id: string): SyncProgress | undefined {
-    return this.activeSyncs.get(id) || this.completedSyncs.find(s => s.id === id);
+    return this.activeSyncs.get(id) || this.completedSyncs.find((s) => s.id === id);
   }
 
   /**
@@ -138,7 +138,7 @@ class SyncStatusManager extends EventEmitter {
       if (sync.providerId === providerId) return sync;
     }
     // Then completed
-    return this.completedSyncs.find(s => s.providerId === providerId);
+    return this.completedSyncs.find((s) => s.providerId === providerId);
   }
 }
 

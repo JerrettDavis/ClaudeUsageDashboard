@@ -9,25 +9,25 @@ export interface AIProvider {
   id: string;
   name: string;
   icon: string;
-  
+
   // Core operations
   initialize(): Promise<void>;
   detectInstallation(): Promise<boolean>;
   getConfigPath(): string;
-  
+
   // Session management
   listSessions(filter?: SessionFilter): Promise<Session[]>;
   getSession(id: string): Promise<SessionDetail>;
   watchSessions(callback: (event: SessionEvent) => void): Disposable;
-  
+
   // Analytics
   getUsageStats(range: DateRange): Promise<UsageStats>;
   getTokenMetrics(): Promise<TokenMetrics>;
   getCostEstimate(usage: Usage): number;
-  
+
   // Process monitoring
   detectRunningProcesses(): Promise<RunningProcess[]>;
-  
+
   // Session launching
   launchSession(config: LaunchConfig): Promise<ProcessHandle>;
 }

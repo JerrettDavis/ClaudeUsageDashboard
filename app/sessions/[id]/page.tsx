@@ -1,12 +1,22 @@
 'use client';
 
-import { use } from 'react';
-import { DashboardLayout } from '@/components/shared/dashboard-layout';
-import { trpc } from '@/lib/trpc/provider';
-import { StatusBadge } from '@/components/shared/status-badge';
-import { MessageTimeline } from '@/components/sessions/message-timeline';
-import { Files, Folder, Terminal, Zap, Clock, DollarSign, GitBranch, Code, FileText } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import {
+  Clock,
+  Code,
+  DollarSign,
+  Files,
+  FileText,
+  Folder,
+  GitBranch,
+  Terminal,
+  Zap,
+} from 'lucide-react';
+import { use } from 'react';
+import { MessageTimeline } from '@/components/sessions/message-timeline';
+import { DashboardLayout } from '@/components/shared/dashboard-layout';
+import { StatusBadge } from '@/components/shared/status-badge';
+import { trpc } from '@/lib/trpc/provider';
 
 export default function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -31,7 +41,9 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
         <div className="p-6">
           <div className="border border-zinc-800 bg-zinc-900/50 rounded p-8 text-center max-w-md mx-auto mt-20">
             <Terminal className="h-12 w-12 text-zinc-700 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-zinc-400 mb-2 font-mono">Session Not Found</h2>
+            <h2 className="text-lg font-semibold text-zinc-400 mb-2 font-mono">
+              Session Not Found
+            </h2>
             <p className="text-sm text-zinc-600 font-mono">ID: {id}</p>
           </div>
         </div>
@@ -49,7 +61,9 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
           {/* Header */}
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <h1 className="text-2xl font-bold text-cyan-400 font-mono truncate">{session.projectName}</h1>
+              <h1 className="text-2xl font-bold text-cyan-400 font-mono truncate">
+                {session.projectName}
+              </h1>
               <p className="text-sm text-zinc-500 font-mono mt-1 truncate">{session.projectPath}</p>
             </div>
             <StatusBadge status={session.status} />
@@ -57,23 +71,51 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={<Clock className="h-4 w-4 text-cyan-400" />} label="Duration" value={formatDistanceToNow(new Date(session.startTime))} />
-            <StatCard icon={<Terminal className="h-4 w-4 text-emerald-400" />} label="Messages" value={(session.messageCount || 0).toString()} />
-            <StatCard icon={<Zap className="h-4 w-4 text-amber-400" />} label="Tokens" value={((session.tokensInput || 0) + (session.tokensOutput || 0)).toLocaleString()} />
-            <StatCard icon={<DollarSign className="h-4 w-4 text-rose-400" />} label="Cost" value={`$${(session.estimatedCost || 0).toFixed(4)}`} />
+            <StatCard
+              icon={<Clock className="h-4 w-4 text-cyan-400" />}
+              label="Duration"
+              value={formatDistanceToNow(new Date(session.startTime))}
+            />
+            <StatCard
+              icon={<Terminal className="h-4 w-4 text-emerald-400" />}
+              label="Messages"
+              value={(session.messageCount || 0).toString()}
+            />
+            <StatCard
+              icon={<Zap className="h-4 w-4 text-amber-400" />}
+              label="Tokens"
+              value={((session.tokensInput || 0) + (session.tokensOutput || 0)).toLocaleString()}
+            />
+            <StatCard
+              icon={<DollarSign className="h-4 w-4 text-rose-400" />}
+              label="Cost"
+              value={`$${(session.estimatedCost || 0).toFixed(4)}`}
+            />
           </div>
 
           {/* Metadata Row */}
           {(session.cwd || session.gitBranch || session.version) && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {session.cwd && (
-                <MetadataCard icon={<Folder className="h-4 w-4 text-cyan-400" />} label="Working Directory" value={session.cwd} />
+                <MetadataCard
+                  icon={<Folder className="h-4 w-4 text-cyan-400" />}
+                  label="Working Directory"
+                  value={session.cwd}
+                />
               )}
               {session.gitBranch && (
-                <MetadataCard icon={<GitBranch className="h-4 w-4 text-emerald-400" />} label="Git Branch" value={session.gitBranch} />
+                <MetadataCard
+                  icon={<GitBranch className="h-4 w-4 text-emerald-400" />}
+                  label="Git Branch"
+                  value={session.gitBranch}
+                />
               )}
               {session.version && (
-                <MetadataCard icon={<Code className="h-4 w-4 text-amber-400" />} label="Claude Version" value={session.version} />
+                <MetadataCard
+                  icon={<Code className="h-4 w-4 text-amber-400" />}
+                  label="Claude Version"
+                  value={session.version}
+                />
               )}
             </div>
           )}
@@ -88,7 +130,9 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
                 </h2>
               </div>
               <div className="p-4">
-                <p className="text-sm text-zinc-300 font-mono leading-relaxed">{session.lastSummary}</p>
+                <p className="text-sm text-zinc-300 font-mono leading-relaxed">
+                  {session.lastSummary}
+                </p>
               </div>
             </div>
           )}
@@ -105,13 +149,15 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
                       <Files className="h-4 w-4 text-cyan-400" />
                       FILES
                     </h2>
-                    <span className="text-xs text-zinc-600 font-mono bg-cyan-500/10 px-2 py-0.5 rounded">{filesModified.length}</span>
+                    <span className="text-xs text-zinc-600 font-mono bg-cyan-500/10 px-2 py-0.5 rounded">
+                      {filesModified.length}
+                    </span>
                   </div>
                   <div className="max-h-[400px] overflow-y-auto">
                     <div className="p-2 space-y-0.5">
                       {filesModified.map((file: string, idx: number) => (
-                        <div 
-                          key={idx} 
+                        <div
+                          key={idx}
                           className="text-xs text-zinc-400 font-mono hover:text-cyan-400 hover:bg-zinc-800/50 transition-colors py-1.5 px-2 rounded cursor-default truncate"
                           title={file}
                         >
@@ -131,13 +177,15 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
                       <Folder className="h-4 w-4 text-emerald-400" />
                       FOLDERS
                     </h2>
-                    <span className="text-xs text-zinc-600 font-mono bg-emerald-500/10 px-2 py-0.5 rounded">{foldersAccessed.length}</span>
+                    <span className="text-xs text-zinc-600 font-mono bg-emerald-500/10 px-2 py-0.5 rounded">
+                      {foldersAccessed.length}
+                    </span>
                   </div>
                   <div className="max-h-[300px] overflow-y-auto">
                     <div className="p-2 space-y-0.5">
                       {foldersAccessed.map((folder: string, idx: number) => (
-                        <div 
-                          key={idx} 
+                        <div
+                          key={idx}
                           className="text-xs text-zinc-400 font-mono hover:text-emerald-400 hover:bg-zinc-800/50 transition-colors py-1.5 px-2 rounded cursor-default truncate"
                           title={folder}
                         >
@@ -160,7 +208,9 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
                   </div>
                   <div className="p-4">
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-amber-400 font-mono">{session.toolUsageCount}</div>
+                      <div className="text-3xl font-bold text-amber-400 font-mono">
+                        {session.toolUsageCount}
+                      </div>
                       <div className="text-xs text-zinc-600 font-mono mt-1">tool calls</div>
                     </div>
                   </div>
@@ -198,14 +248,24 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
   );
 }
 
-function MetadataCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function MetadataCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="border border-zinc-800 bg-zinc-900/50 rounded p-3">
       <div className="flex items-center gap-2 mb-1">
         {icon}
         <span className="text-xs text-zinc-500 font-mono">{label}</span>
       </div>
-      <div className="text-sm text-zinc-300 font-mono truncate" title={value}>{value}</div>
+      <div className="text-sm text-zinc-300 font-mono truncate" title={value}>
+        {value}
+      </div>
     </div>
   );
 }
