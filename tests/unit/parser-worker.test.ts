@@ -18,7 +18,15 @@ interface ParseResult {
   toolCalls?: ToolCall[];
 }
 
+interface WorkerResponse {
+  jobId: string;
+  result?: ParseResult;
+  error?: string;
+}
+
 describe('Parser Worker', () => {
+  const generateJobId = () => `job_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
   it('should parse a simple JSONL file', async () => {
     // Create a test file
     const testFile = path.join(__dirname, '../fixtures/test-session.jsonl');
@@ -35,10 +43,8 @@ describe('Parser Worker', () => {
 
     // Test the worker
     const workerPath = path.resolve(process.cwd(), 'lib/workers/parser.worker.mjs');
-    console.log('Worker path:', workerPath);
-    console.log('File exists:', fs.existsSync(workerPath));
-
     const worker = new Worker(workerPath);
+    const jobId = generateJobId();
 
     const result = await new Promise<ParseResult>((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -46,14 +52,14 @@ describe('Parser Worker', () => {
         reject(new Error('Worker timeout after 5s'));
       }, 5000);
 
-      worker.on('message', (msg) => {
-        console.log('Worker message:', msg);
-        if (msg.type === 'result') {
+      worker.on('message', (msg: WorkerResponse) => {
+        if (msg.jobId === jobId) {
           clearTimeout(timeout);
-          resolve(msg.data);
-        } else if (msg.type === 'error') {
-          clearTimeout(timeout);
-          reject(new Error(msg.error));
+          if (msg.error) {
+            reject(new Error(msg.error));
+          } else if (msg.result) {
+            resolve(msg.result);
+          }
         }
       });
 
@@ -62,7 +68,8 @@ describe('Parser Worker', () => {
         reject(err);
       });
 
-      worker.postMessage({ sessionPath: testFile });
+      // Send message in the format the worker expects
+      worker.postMessage({ id: jobId, data: { sessionPath: testFile } });
     });
 
     await worker.terminate();
@@ -91,6 +98,7 @@ describe('Parser Worker', () => {
 
     const workerPath = path.resolve(process.cwd(), 'lib/workers/parser.worker.mjs');
     const worker = new Worker(workerPath);
+    const jobId = generateJobId();
 
     const result = await new Promise<ParseResult>((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -98,13 +106,14 @@ describe('Parser Worker', () => {
         reject(new Error('Worker timeout'));
       }, 5000);
 
-      worker.on('message', (msg) => {
-        if (msg.type === 'result') {
+      worker.on('message', (msg: WorkerResponse) => {
+        if (msg.jobId === jobId) {
           clearTimeout(timeout);
-          resolve(msg.data);
-        } else if (msg.type === 'error') {
-          clearTimeout(timeout);
-          reject(new Error(msg.error));
+          if (msg.error) {
+            reject(new Error(msg.error));
+          } else if (msg.result) {
+            resolve(msg.result);
+          }
         }
       });
 
@@ -113,7 +122,7 @@ describe('Parser Worker', () => {
         reject(err);
       });
 
-      worker.postMessage({ sessionPath: testFile });
+      worker.postMessage({ id: jobId, data: { sessionPath: testFile } });
     });
 
     await worker.terminate();
@@ -135,6 +144,7 @@ describe('Parser Worker', () => {
 
     const workerPath = path.resolve(process.cwd(), 'lib/workers/parser.worker.mjs');
     const worker = new Worker(workerPath);
+    const jobId = generateJobId();
 
     const result = await new Promise<ParseResult>((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -142,13 +152,14 @@ describe('Parser Worker', () => {
         reject(new Error('Worker timeout'));
       }, 5000);
 
-      worker.on('message', (msg) => {
-        if (msg.type === 'result') {
+      worker.on('message', (msg: WorkerResponse) => {
+        if (msg.jobId === jobId) {
           clearTimeout(timeout);
-          resolve(msg.data);
-        } else if (msg.type === 'error') {
-          clearTimeout(timeout);
-          reject(new Error(msg.error));
+          if (msg.error) {
+            reject(new Error(msg.error));
+          } else if (msg.result) {
+            resolve(msg.result);
+          }
         }
       });
 
@@ -157,7 +168,7 @@ describe('Parser Worker', () => {
         reject(err);
       });
 
-      worker.postMessage({ sessionPath: testFile });
+      worker.postMessage({ id: jobId, data: { sessionPath: testFile } });
     });
 
     await worker.terminate();

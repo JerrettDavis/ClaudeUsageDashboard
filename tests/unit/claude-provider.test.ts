@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { eq } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/lib/db/client';
 import { messages, sessions } from '@/lib/db/schema';
 import { ClaudeProvider } from '@/lib/providers/claude';
@@ -12,6 +12,7 @@ describe('ClaudeProvider', () => {
   beforeAll(async () => {
     // Use in-memory database for tests
     provider = new ClaudeProvider();
+    await provider.initialize();
   });
 
   afterAll(async () => {
@@ -81,6 +82,14 @@ describe('ClaudeProvider', () => {
   });
 
   describe('ingestSession', () => {
+    // Clean up before each test to ensure isolation
+    beforeEach(async () => {
+      // Delete all messages and sessions for the test fixture
+      const sessionId = path.basename(testFixturePath, '.jsonl');
+      await db.delete(messages).where(eq(messages.sessionId, sessionId));
+      await db.delete(sessions).where(eq(sessions.id, sessionId));
+    });
+
     it('should ingest parsed session into database', async () => {
       const parsed = await provider.parseSessionFile(testFixturePath);
       const sessionId = await provider.ingestSession(testFixturePath, parsed);
