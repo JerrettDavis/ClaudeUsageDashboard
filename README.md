@@ -38,6 +38,33 @@ A comprehensive, real-time monitoring dashboard for AI coding assistant usage. T
 
 ## 📦 Installation
 
+### Option 1: Docker (Recommended)
+
+The easiest way to run the dashboard:
+
+```bash
+# Using Docker Compose
+docker compose up -d
+
+# Or pull from GitHub Container Registry
+docker run -d -p 3000:3000 \
+  -v ~/.claude:/home/nextjs/.claude:ro \
+  -v ./data:/app/data \
+  ghcr.io/jerrettdavis/claudeusagedashboard:latest
+```
+
+### Option 2: Download Release
+
+Download the latest release from [Releases](https://github.com/JerrettDavis/ClaudeUsageDashboard/releases):
+
+1. Download `claude-usage-dashboard-X.X.X-standalone.zip` (Windows) or `.tar.gz` (Mac/Linux)
+2. Extract the archive
+3. Make sure Node.js 22+ is installed
+4. Run `start.bat` (Windows) or `./start.sh` (Mac/Linux)
+5. Open http://localhost:3000
+
+### Option 3: From Source
+
 ```bash
 # Clone the repository
 git clone https://github.com/JerrettDavis/ClaudeUsageDashboard.git
@@ -54,12 +81,17 @@ Visit [http://localhost:3000](http://localhost:3000) to see the dashboard.
 
 ## 🚀 Quick Start
 
-1. **Development Mode**
+1. **Docker (Easiest)**
+   ```bash
+   docker compose up -d
+   ```
+
+2. **Development Mode**
    ```bash
    npm run dev
    ```
 
-2. **Production Build**
+3. **Production Build**
    ```bash
    npm run build
    npm start

@@ -1,0 +1,14 @@
+services:
+  dashboard:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      # Persist database
+      - ./data:/app/data
+      # Mount Claude config (read-only) for session parsing
+      - ~/.claude:/home/nextjs/.claude:ro
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=/app/data/claude-dashboard.db
+    restart: unless-stopped
