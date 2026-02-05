@@ -1,0 +1,8 @@
+{"type":"summary","leafUuid":"test-session-001","summary":"Test session for parser"}
+{"type":"user","uuid":"msg_001","parentUuid":null,"sessionId":"test-session-001","timestamp":"2024-01-15T10:00:00.000Z","message":{"role":"user","content":"Hello, can you help me with a Python script?"}}
+{"type":"assistant","uuid":"msg_002","parentUuid":"msg_001","sessionId":"test-session-001","timestamp":"2024-01-15T10:00:05.000Z","message":{"role":"assistant","content":[{"type":"text","text":"Of course! I'd be happy to help you with a Python script. What would you like to create?"}]}}
+{"type":"user","uuid":"msg_003","parentUuid":"msg_002","sessionId":"test-session-001","timestamp":"2024-01-15T10:00:30.000Z","message":{"role":"user","content":"Create a simple file reader"}}
+{"type":"assistant","uuid":"msg_004","parentUuid":"msg_003","sessionId":"test-session-001","timestamp":"2024-01-15T10:00:35.000Z","message":{"role":"assistant","content":[{"type":"tool_use","id":"tool_001","name":"create","input":{"path":"reader.py","file_text":"def read_file(filename):\n    with open(filename, 'r') as f:\n        return f.read()\n"}},{"type":"text","text":"I've created a simple file reader function."}]}}
+{"type":"file-history-snapshot","filePath":"reader.py","timestamp":"2024-01-15T10:00:35.000Z"}
+{"type":"user","uuid":"msg_005","parentUuid":"msg_004","sessionId":"test-session-001","timestamp":"2024-01-15T10:01:00.000Z","message":{"role":"user","content":"Thanks!"}}
+{"type":"assistant","uuid":"msg_006","parentUuid":"msg_005","sessionId":"test-session-001","timestamp":"2024-01-15T10:01:02.000Z","message":{"role":"assistant","content":[{"type":"text","text":"You're welcome! Let me know if you need anything else."}]}}

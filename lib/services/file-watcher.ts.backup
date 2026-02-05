@@ -1,0 +1,359 @@
+import { readFile, readdir, stat } from 'fs/promises';
+import { join } from 'path';
+import { eventBus } from './event-bus';
+import { db } from '@/lib/db/client';
+import { sessions } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import { formatMessageAsTerminal } from './message-formatter';
+
+interface FileState {
+  path: string;
+  lineCount: number;
+  lastModified: number;
+}
+
+export class FileWatcherService {
+  private isRunning = false;
+  private watchPath: string;
+  private fileStates: Map<string, FileState> = new Map();
+  private pollInterval: NodeJS.Timeout | null = null;
+  private readonly POLL_INTERVAL_MS = 1000; // Poll every 1 second
+
+  constructor(claudeDir?: string) {
+    const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+    const basePath = claudeDir || join(homeDir, '.claude', 'projects');
+    this.watchPath = basePath.replace(/\\/g, '/');
+  }
+
+  async start() {
+    if (this.isRunning) {
+      console.log('[FileWatcher] Already running');
+      return;
+    }
+
+    console.log(`[FileWatcher] Starting manual polling on: ${this.watchPath}`);
+
+    // Initial scan
+    await this.scanAndInitialize();
+
+    // Start polling
+    this.pollInterval = setInterval(() => {
+      this.pollForChanges().catch(error => {
+        console.error('[FileWatcher] Polling error:', error);
+      });
+    }, this.POLL_INTERVAL_MS);
+
+    this.isRunning = true;
+    console.log(`[FileWatcher] Polling started, tracking ${this.fileStates.size} files`);
+  }
+
+  stop() {
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = null;
+    }
+    this.isRunning = false;
+    this.fileStates.clear();
+    console.log('[FileWatcher] Stopped');
+  }
+
+  getStatus() {
+    return {
+      isRunning: this.isRunning,
+      watchPath: this.watchPath,
+      watchedFiles: this.fileStates.size,
+    };
+  }
+
+  private async scanAndInitialize() {
+    try {
+      const projectDirs = await readdir(this.watchPath.replace(/\//g, '\\'));
+      console.log(`[FileWatcher] Scanning ${projectDirs.length} project directories`);
+
+      for (const dir of projectDirs) {
+        const dirPath = join(this.watchPath.replace(/\//g, '\\'), dir);
+        try {
+          const files = await readdir(dirPath);
+          const jsonlFiles = files.filter(f => f.endsWith('.jsonl'));
+          
+          for (const file of jsonlFiles) {
+            const filePath = join(dirPath, file).replace(/\\/g, '/');
+            await this.initializeFile(filePath);
+          }
+        } catch (error) {
+          // Skip directories we can't read
+        }
+      }
+
+      console.log(`[FileWatcher] Initialized ${this.fileStates.size} files`);
+    } catch (error) {
+      console.error('[FileWatcher] Error scanning directories:', error);
+    }
+  }
+
+  private async initializeFile(filePath: string) {
+    try {
+      const normalizedPath = filePath.replace(/\//g, '\\');
+      const stats = await stat(normalizedPath);
+      const content = await readFile(normalizedPath, 'utf-8');
+      const lines = content.split('\n').filter((line) => line.trim());
+      
+      this.fileStates.set(filePath, {
+        path: filePath,
+        lineCount: lines.length,
+        lastModified: stats.mtimeMs,
+      });
+      
+      console.log(`[FileWatcher] 📝 Tracking ${filePath.split('/').pop()} (${lines.length} lines)`);
+    } catch (error) {
+      console.error(`[FileWatcher] Error initializing ${filePath}:`, error);
+    }
+  }
+
+  private async pollForChanges() {
+    for (const [filePath, state] of this.fileStates.entries()) {
+      try {
+        const normalizedPath = filePath.replace(/\//g, '\\');
+        const stats = await stat(normalizedPath);
+        
+        // Check if file was modified
+        if (stats.mtimeMs > state.lastModified) {
+          console.log(`[FileWatcher] 🔥 Change detected: ${filePath.split('/').pop()}`);
+          await this.handleFileChanged(filePath, state);
+        }
+      } catch (error) {
+        // File might have been deleted
+        this.fileStates.delete(filePath);
+      }
+    }
+  }
+
+  private async handleFileChanged(filePath: string, state: FileState) {
+    try {
+      const normalizedPath = filePath.replace(/\//g, '\\');
+      const stats = await stat(normalizedPath);
+      const content = await readFile(normalizedPath, 'utf-8');
+      const lines = content.split('\n').filter((line) => line.trim());
+
+      const newLineCount = lines.length;
+      const oldLineCount = state.lineCount;
+
+      if (newLineCount <= oldLineCount) {
+        // No new lines
+        state.lastModified = stats.mtimeMs;
+        return;
+      }
+
+      const newLines = lines.slice(oldLineCount);
+      console.log(`[FileWatcher] ✓ ${newLines.length} new lines in ${filePath.split('/').pop()}`);
+
+      // Update state
+      state.lineCount = newLineCount;
+      state.lastModified = stats.mtimeMs;
+
+      // Extract session ID
+      const sessionId = this.extractSessionId(filePath);
+      if (!sessionId) {
+        console.log(`[FileWatcher] Could not extract session ID from ${filePath}`);
+        return;
+      }
+
+      // Parse and emit new lines
+      for (const line of newLines) {
+        try {
+          const entry = JSON.parse(line);
+          
+          // Format message as terminal output
+          const terminalLines = formatMessageAsTerminal(entry);
+          
+          if (terminalLines.length > 0) {
+            console.log(`[FileWatcher] ✓ Emitting ${entry.type} message with ${terminalLines.length} terminal lines`);
+            
+            eventBus.emitMessageEvent({
+              type: 'message:new',
+              sessionId,
+              message: entry,
+              terminalOutput: terminalLines,
+              timestamp: Date.now(),
+            });
+          }
+        } catch (parseError) {
+          console.error(`[FileWatcher] Failed to parse line:`, parseError);
+        }
+      }
+
+      // Emit session update
+      eventBus.emitSessionEvent({
+        type: 'session:update',
+        sessionId,
+        timestamp: Date.now(),
+      });
+
+    } catch (error) {
+      console.error(`[FileWatcher] Error handling file change for ${filePath}:`, error);
+    }
+  }
+
+  stop() {
+    if (this.watcher) {
+      this.watcher.close();
+      this.watcher = null;
+    }
+    this.isRunning = false;
+    this.filePositions.clear();
+    console.log('[FileWatcher] Stopped');
+  }
+
+  private debounce(filePath: string, fn: () => void) {
+    const existing = this.debounceTimers.get(filePath);
+    if (existing) {
+      clearTimeout(existing);
+    }
+
+    const timer = setTimeout(() => {
+      fn();
+      this.debounceTimers.delete(filePath);
+    }, 100);
+
+    this.debounceTimers.set(filePath, timer);
+  }
+
+  private async handleFileAdded(filePath: string) {
+    console.log(`[FileWatcher] File added: ${filePath}`);
+    
+    // Initialize file position tracking
+    try {
+      const content = await readFile(filePath, 'utf-8');
+      const lines = content.split('\n').filter((line) => line.trim());
+      this.filePositions.set(filePath, lines.length);
+      console.log(`[FileWatcher] Tracking ${filePath} (${lines.length} lines)`);
+    } catch (error) {
+      console.error(`[FileWatcher] Error reading file on add:`, error);
+    }
+
+    this.debounce(filePath, async () => {
+      const sessionId = this.extractSessionId(filePath);
+      if (sessionId) {
+        console.log(`[FileWatcher] Emitting session:new for ${sessionId}`);
+        eventBus.emitSessionEvent({
+          type: 'session:new',
+          sessionId,
+          data: { filePath },
+          timestamp: Date.now(),
+        });
+      }
+    });
+  }
+
+  private async handleFileChanged(filePath: string) {
+    console.log(`[FileWatcher] 🔥 CHANGE EVENT RECEIVED: ${filePath}`);
+    
+    this.debounce(filePath, async () => {
+      try {
+        console.log(`[FileWatcher] Processing change for: ${filePath}`);
+        const sessionId = this.extractSessionId(filePath);
+        if (!sessionId) {
+          console.log(`[FileWatcher] Could not extract session ID from ${filePath}`);
+          return;
+        }
+
+        const content = await readFile(filePath, 'utf-8');
+        const lines = content.split('\n').filter((line) => line.trim());
+
+        const lastPosition = this.filePositions.get(filePath) || 0;
+        const newLines = lines.slice(lastPosition);
+
+        console.log(`[FileWatcher] File ${filePath}: ${lastPosition} -> ${lines.length} (${newLines.length} new lines)`);
+
+        if (newLines.length === 0) return;
+
+        this.filePositions.set(filePath, lines.length);
+
+        // Parse new lines
+        for (const line of newLines) {
+          try {
+            const entry = JSON.parse(line);
+            
+            // Format message as terminal output
+            const terminalLines = formatMessageAsTerminal(entry);
+            
+            console.log(`[FileWatcher] ✓ Parsed message: ${entry.type}, terminal lines: ${terminalLines.length}`);
+            
+            // Emit message event with formatted terminal output
+            if (entry.type === 'user' || entry.type === 'assistant') {
+              eventBus.emitMessageEvent({
+                type: 'message:new',
+                sessionId,
+                message: entry,
+                terminalOutput: terminalLines,
+                timestamp: Date.now(),
+              });
+              console.log(`[FileWatcher] ✓ Emitted message:new event for session ${sessionId}`);
+            }
+          } catch (parseError) {
+            console.error(`[FileWatcher] Failed to parse line:`, parseError);
+          }
+        }
+
+        // Emit session update event
+        eventBus.emitSessionEvent({
+          type: 'session:update',
+          sessionId,
+          data: {
+            filePath,
+            newMessagesCount: newLines.length,
+          },
+          timestamp: Date.now(),
+        });
+
+        // Update session status in database
+        await db
+          .update(sessions)
+          .set({
+            status: 'active',
+            lastActivity: new Date(),
+          })
+          .where(eq(sessions.id, sessionId));
+
+      } catch (error) {
+        console.error(`[FileWatcher] Error processing file change:`, error);
+      }
+    });
+  }
+
+  private async handleFileDeleted(filePath: string) {
+    console.log(`[FileWatcher] File deleted: ${filePath}`);
+    const sessionId = this.extractSessionId(filePath);
+    this.filePositions.delete(filePath);
+    
+    if (sessionId) {
+      eventBus.emitSessionEvent({
+        type: 'session:ended',
+        sessionId,
+        data: { filePath },
+        timestamp: Date.now(),
+      });
+    }
+  }
+
+  private extractSessionId(filePath: string): string | null {
+    // Extract session ID from path like: ~/.claude/projects/session-id/data.jsonl
+    const parts = filePath.split(/[/\\]/);
+    const projectsIndex = parts.findIndex((p) => p === 'projects');
+    if (projectsIndex >= 0 && parts.length > projectsIndex + 1) {
+      return parts[projectsIndex + 1];
+    }
+    return null;
+  }
+
+  getStatus() {
+    return {
+      isRunning: this.isRunning,
+      watchPath: this.watchPath,
+      watchedFiles: this.filePositions.size,
+    };
+  }
+}
+
+// Singleton instance
+export const fileWatcher = new FileWatcherService();
