@@ -45,13 +45,24 @@
         "noUnreachable": "error",
         "noUnreachableSuper": "error",
         "noInvalidBuiltinInstantiation": "error",
-        "useValidTypeof": "error"
+        "useValidTypeof": "error",
+        "noUnusedVariables": "warn",
+        "noUnusedImports": "warn",
+        "noUnusedFunctionParameters": "warn"
       },
       "style": {
         "noNamespace": "error",
         "useAsConstAssertion": "error"
       },
+      "a11y": {
+        "useButtonType": "warn",
+        "noStaticElementInteractions": "warn",
+        "useKeyWithClickEvents": "warn"
+      },
       "suspicious": {
+        "noArrayIndexKey": "warn",
+        "useIterableCallbackReturn": "warn",
+        "noAssignInExpressions": "warn",
         "noAsyncPromiseExecutor": "error",
         "noCatchAssign": "error",
         "noClassAssign": "error",

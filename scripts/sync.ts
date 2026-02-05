@@ -11,7 +11,9 @@ async function main() {
     initializeDatabase();
     try {
       await seedDatabase();
-    } catch (_error) {}
+    } catch (_error) {
+      // Ignore seed errors - database may already be seeded
+    }
     console.log('\n🔍 Checking provider installations...');
     const installations = await syncService.checkInstallations();
     for (const { providerId, installed } of installations) {
