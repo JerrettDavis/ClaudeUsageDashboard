@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -5,7 +7,14 @@ import { db } from '@/lib/db/client';
 import { messages, sessions } from '@/lib/db/schema';
 import { ClaudeProvider } from '@/lib/providers/claude';
 
-describe('ClaudeProvider', () => {
+// Check if Claude is installed (config directory exists)
+const claudeConfigDir = path.join(os.homedir(), '.claude');
+const isClaudeInstalled = fs.existsSync(claudeConfigDir);
+
+// Skip tests if Claude is not installed (CI environment)
+const describeIfClaude = isClaudeInstalled ? describe : describe.skip;
+
+describeIfClaude('ClaudeProvider', () => {
   let provider: ClaudeProvider;
   const testFixturePath = path.join(process.cwd(), 'tests/fixtures/sample-session.jsonl');
 
