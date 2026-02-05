@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.3](https://github.com/JerrettDavis/ClaudeUsageDashboard/compare/v3.0.2...v3.0.3) (2026-02-05)
+
+
+### Bug Fixes
+
+* create directories before copying files ([fe834a3](https://github.com/JerrettDavis/ClaudeUsageDashboard/commit/fe834a31a3ad6900bc45248afa0e9522a1da71c3))
+
 ## [3.0.2](https://github.com/JerrettDavis/ClaudeUsageDashboard/compare/v3.0.1...v3.0.2) (2026-02-05)
 
 
