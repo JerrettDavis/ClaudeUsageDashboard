@@ -34,9 +34,11 @@ jobs:
 
   build-app:
     if: |
-      (github.event_name == 'push' && needs.release-please.outputs.release_created) ||
-      github.event_name == 'release' ||
-      github.event_name == 'workflow_dispatch'
+      always() && (
+        (github.event_name == 'push' && needs.release-please.outputs.release_created == 'true') ||
+        github.event_name == 'release' ||
+        github.event_name == 'workflow_dispatch'
+      )
     needs: [release-please]
     strategy:
       fail-fast: false
@@ -151,9 +153,11 @@ jobs:
 
   publish-release:
     if: |
-      (github.event_name == 'push' && needs.release-please.outputs.release_created) ||
-      github.event_name == 'release' ||
-      github.event_name == 'workflow_dispatch'
+      always() && (
+        (github.event_name == 'push' && needs.release-please.outputs.release_created == 'true') ||
+        github.event_name == 'release' ||
+        github.event_name == 'workflow_dispatch'
+      ) && needs.build-app.result == 'success'
     needs: [release-please, build-app]
     runs-on: ubuntu-latest
     steps:
@@ -181,9 +185,11 @@ jobs:
 
   build-docker:
     if: |
-      (github.event_name == 'push' && needs.release-please.outputs.release_created) ||
-      github.event_name == 'release' ||
-      github.event_name == 'workflow_dispatch'
+      always() && (
+        (github.event_name == 'push' && needs.release-please.outputs.release_created == 'true') ||
+        github.event_name == 'release' ||
+        github.event_name == 'workflow_dispatch'
+      )
     needs: [release-please]
     runs-on: ubuntu-latest
     steps:
