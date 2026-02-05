@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/JerrettDavis/ClaudeUsageDashboard/compare/v3.0.0...v3.0.1) (2026-02-05)
+
+
+### Bug Fixes
+
+* correct Rust toolchain action name ([3117eef](https://github.com/JerrettDavis/ClaudeUsageDashboard/commit/3117eef70673111b18c3d4e6c9502bdb65899c28))
+
 ## [3.0.0](https://github.com/JerrettDavis/ClaudeUsageDashboard/compare/v2.0.0...v3.0.0) (2026-02-05)
 
 
