@@ -38,9 +38,17 @@ A comprehensive, real-time monitoring dashboard for AI coding assistant usage. T
 
 ## 📦 Installation
 
-### Option 1: Docker (Recommended)
+### Option 1: Desktop App (Recommended)
 
-The easiest way to run the dashboard:
+Download the installer for your platform from [Releases](https://github.com/JerrettDavis/ClaudeUsageDashboard/releases):
+
+- **Windows**: `Claude-Usage-Dashboard-X.X.X-Setup.exe` - Double-click to install
+- **macOS**: `Claude-Usage-Dashboard-X.X.X.dmg` - Drag to Applications
+- **Linux**: `Claude-Usage-Dashboard-X.X.X.AppImage` - Make executable and run
+
+No Node.js or other dependencies required!
+
+### Option 2: Docker
 
 ```bash
 # Using Docker Compose
@@ -53,15 +61,7 @@ docker run -d -p 3000:3000 \
   ghcr.io/jerrettdavis/claudeusagedashboard:latest
 ```
 
-### Option 2: Download Release
-
-Download the latest release from [Releases](https://github.com/JerrettDavis/ClaudeUsageDashboard/releases):
-
-1. Download `claude-usage-dashboard-X.X.X-standalone.zip` (Windows) or `.tar.gz` (Mac/Linux)
-2. Extract the archive
-3. Make sure Node.js 22+ is installed
-4. Run `start.bat` (Windows) or `./start.sh` (Mac/Linux)
-5. Open http://localhost:3000
+Then open http://localhost:3000
 
 ### Option 3: From Source
 

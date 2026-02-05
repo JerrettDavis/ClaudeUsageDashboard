@@ -24,7 +24,76 @@ jobs:
         with:
           release-type: node
 
-  build-and-publish:
+  build-electron:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+            extension: exe
+          - os: macos-latest
+            platform: mac
+            extension: dmg
+          - os: ubuntu-latest
+            platform: linux
+            extension: AppImage
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js
+        run: npm run build
+
+      - name: Build Electron app
+        run: npm run electron:build:${{ matrix.platform }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-${{ matrix.platform }}
+          path: |
+            release-builds/*.exe
+            release-builds/*.dmg
+            release-builds/*.AppImage
+          if-no-files-found: error
+
+  publish-release:
+    needs: [release-please, build-electron]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: find artifacts -type f
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.release-please.outputs.tag_name }}
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/*.dmg
+            artifacts/**/*.AppImage
+
+  build-docker:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest
@@ -61,56 +130,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build standalone
-        run: npm run build
-
-      - name: Create release artifacts
-        run: |
-          # Create portable archive
-          mkdir -p release/claude-usage-dashboard
-          cp -r .next/standalone/* release/claude-usage-dashboard/
-          cp -r .next/static release/claude-usage-dashboard/.next/
-          cp -r public release/claude-usage-dashboard/ 2>/dev/null || true
-          
-          # Create launcher scripts
-          cat > release/claude-usage-dashboard/start.sh << 'EOF'
-          #!/bin/bash
-          cd "$(dirname "$0")"
-          export NODE_ENV=production
-          export PORT=${PORT:-3000}
-          echo "Starting Claude Usage Dashboard on http://localhost:$PORT"
-          node server.js
-          EOF
-          chmod +x release/claude-usage-dashboard/start.sh
-          
-          cat > release/claude-usage-dashboard/start.bat << 'EOF'
-          @echo off
-          cd /d "%~dp0"
-          set NODE_ENV=production
-          if "%PORT%"=="" set PORT=3000
-          echo Starting Claude Usage Dashboard on http://localhost:%PORT%
-          node server.js
-          EOF
-          
-          # Create archives
-          cd release
-          tar -czvf claude-usage-dashboard-${{ needs.release-please.outputs.version }}-standalone.tar.gz claude-usage-dashboard
-          zip -r claude-usage-dashboard-${{ needs.release-please.outputs.version }}-standalone.zip claude-usage-dashboard
-
-      - name: Upload release artifacts
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ needs.release-please.outputs.tag_name }}
-          files: |
-            release/*.tar.gz
-            release/*.zip
