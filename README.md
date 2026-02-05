@@ -40,13 +40,14 @@ A comprehensive, real-time monitoring dashboard for AI coding assistant usage. T
 
 ### Option 1: Desktop App (Recommended)
 
-Download the installer for your platform from [Releases](https://github.com/JerrettDavis/ClaudeUsageDashboard/releases):
+Download the portable app for your platform from [Releases](https://github.com/JerrettDavis/ClaudeUsageDashboard/releases):
 
-- **Windows**: `Claude-Usage-Dashboard-X.X.X-Setup.exe` - Double-click to install
-- **macOS**: `Claude-Usage-Dashboard-X.X.X.dmg` - Drag to Applications
-- **Linux**: `Claude-Usage-Dashboard-X.X.X.AppImage` - Make executable and run
+- **Windows**: `claude-dashboard-windows.zip` - Extract and run `Claude Usage Dashboard.exe`
+- **macOS (Intel)**: `claude-dashboard-macos-x64.tar.gz` - Extract and run `claude-dashboard`
+- **macOS (Apple Silicon)**: `claude-dashboard-macos-arm64.tar.gz` - Extract and run `claude-dashboard`
+- **Linux**: `claude-dashboard-linux.tar.gz` - Extract and run `claude-dashboard`
 
-No Node.js or other dependencies required!
+No Node.js or other dependencies required! (~50MB download, includes bundled runtime)
 
 ### Option 2: Docker
 

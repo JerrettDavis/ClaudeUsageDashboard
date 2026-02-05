@@ -24,21 +24,28 @@ jobs:
         with:
           release-type: node
 
-  build-electron:
+  build-app:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created }}
     strategy:
       matrix:
         include:
           - os: windows-latest
-            platform: win
-            extension: exe
+            target: x86_64-pc-windows-msvc
+            node_arch: win-x64
+            artifact: claude-dashboard-windows.zip
           - os: macos-latest
-            platform: mac
-            extension: dmg
+            target: x86_64-apple-darwin
+            node_arch: darwin-x64
+            artifact: claude-dashboard-macos-x64.tar.gz
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            node_arch: darwin-arm64
+            artifact: claude-dashboard-macos-arm64.tar.gz
           - os: ubuntu-latest
-            platform: linux
-            extension: AppImage
+            target: x86_64-unknown-linux-gnu
+            node_arch: linux-x64
+            artifact: claude-dashboard-linux.tar.gz
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -50,48 +57,102 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+        with:
+          targets: ${{ matrix.target }}
+
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Next.js
+      - name: Build Next.js standalone
         run: npm run build
 
-      - name: Build Electron app
-        run: npm run electron:build:${{ matrix.platform }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download portable Node.js
+        shell: bash
+        run: |
+          NODE_VERSION="v22.13.1"
+          if [[ "${{ matrix.node_arch }}" == "win-x64" ]]; then
+            curl -L "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-win-x64.zip" -o node.zip
+            unzip node.zip
+            mv node-${NODE_VERSION}-win-x64 portable-node
+          else
+            curl -L "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-${{ matrix.node_arch }}.tar.gz" -o node.tar.gz
+            tar -xzf node.tar.gz
+            mv node-${NODE_VERSION}-${{ matrix.node_arch }} portable-node
+          fi
 
-      - name: Upload artifacts
+      - name: Build Rust launcher
+        run: |
+          cd src-tauri
+          cargo build --release --target ${{ matrix.target }}
+
+      - name: Package (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $version = "${{ needs.release-please.outputs.version }}"
+          New-Item -ItemType Directory -Path "release/Claude Usage Dashboard" -Force
+          
+          # Copy launcher
+          Copy-Item "src-tauri/target/${{ matrix.target }}/release/claude-dashboard-launcher.exe" "release/Claude Usage Dashboard/Claude Usage Dashboard.exe"
+          
+          # Copy server
+          Copy-Item -Recurse ".next/standalone/*" "release/Claude Usage Dashboard/server/"
+          Copy-Item -Recurse ".next/static" "release/Claude Usage Dashboard/server/.next/static"
+          if (Test-Path "public") { Copy-Item -Recurse "public" "release/Claude Usage Dashboard/server/public" }
+          
+          # Copy Node.js runtime
+          New-Item -ItemType Directory -Path "release/Claude Usage Dashboard/runtime" -Force
+          Copy-Item "portable-node/node.exe" "release/Claude Usage Dashboard/runtime/"
+          
+          # Create zip
+          Compress-Archive -Path "release/Claude Usage Dashboard" -DestinationPath "release/${{ matrix.artifact }}"
+
+      - name: Package (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          VERSION="${{ needs.release-please.outputs.version }}"
+          mkdir -p "release/Claude Usage Dashboard"
+          
+          # Copy launcher
+          cp "src-tauri/target/${{ matrix.target }}/release/claude-dashboard-launcher" "release/Claude Usage Dashboard/claude-dashboard"
+          chmod +x "release/Claude Usage Dashboard/claude-dashboard"
+          
+          # Copy server
+          cp -r .next/standalone/* "release/Claude Usage Dashboard/server/"
+          cp -r .next/static "release/Claude Usage Dashboard/server/.next/"
+          [ -d "public" ] && cp -r public "release/Claude Usage Dashboard/server/"
+          
+          # Copy Node.js runtime
+          mkdir -p "release/Claude Usage Dashboard/runtime"
+          cp "portable-node/bin/node" "release/Claude Usage Dashboard/runtime/"
+          chmod +x "release/Claude Usage Dashboard/runtime/node"
+          
+          # Create tarball
+          cd release
+          tar -czvf "${{ matrix.artifact }}" "Claude Usage Dashboard"
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: electron-${{ matrix.platform }}
-          path: |
-            release-builds/*.exe
-            release-builds/*.dmg
-            release-builds/*.AppImage
-          if-no-files-found: error
+          name: ${{ matrix.artifact }}
+          path: release/${{ matrix.artifact }}
 
   publish-release:
-    needs: [release-please, build-electron]
+    needs: [release-please, build-app]
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-          merge-multiple: true
-
-      - name: List artifacts
-        run: find artifacts -type f
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.release-please.outputs.tag_name }}
-          files: |
-            artifacts/**/*.exe
-            artifacts/**/*.dmg
-            artifacts/**/*.AppImage
+          files: artifacts/**/*
 
   build-docker:
     needs: release-please
