@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/JerrettDavis/ClaudeUsageDashboard/compare/v1.0.0...v2.0.0) (2026-02-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* Release artifacts now include native installers instead of Node.js archives
+
+### Features
+
+* add Electron desktop app for double-click installation ([f46e673](https://github.com/JerrettDavis/ClaudeUsageDashboard/commit/f46e67328ba2af35ade97ec623a3822bfec7ff0a))
+
 ## 1.0.0 (2026-02-05)
 
 
