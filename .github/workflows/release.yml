@@ -105,16 +105,16 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Path "release/Claude Usage Dashboard/server/.next" -Force
+          New-Item -ItemType Directory -Path "release/Claude Usage Dashboard/server" -Force
           New-Item -ItemType Directory -Path "release/Claude Usage Dashboard/runtime" -Force
           
           # Copy launcher
           Copy-Item "src-tauri/target/${{ matrix.target }}/release/claude-dashboard-launcher.exe" "release/Claude Usage Dashboard/Claude Usage Dashboard.exe"
           
-          # Copy server
-          Copy-Item -Recurse ".next/standalone/*" "release/Claude Usage Dashboard/server/"
-          Copy-Item -Recurse ".next/static" "release/Claude Usage Dashboard/server/.next/static"
-          if (Test-Path "public") { Copy-Item -Recurse "public" "release/Claude Usage Dashboard/server/public" }
+          # Copy server (standalone includes .next)
+          Get-ChildItem ".next/standalone" | Copy-Item -Destination "release/Claude Usage Dashboard/server/" -Recurse -Force
+          Copy-Item -Recurse ".next/static" "release/Claude Usage Dashboard/server/.next/"
+          if (Test-Path "public") { Copy-Item -Recurse "public" "release/Claude Usage Dashboard/server/" }
           
           # Copy Node.js runtime
           Copy-Item "portable-node/node.exe" "release/Claude Usage Dashboard/runtime/"
