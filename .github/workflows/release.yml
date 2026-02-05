@@ -113,7 +113,8 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: |
           VERSION="${{ needs.release-please.outputs.version }}"
-          mkdir -p "release/Claude Usage Dashboard"
+          mkdir -p "release/Claude Usage Dashboard/server/.next"
+          mkdir -p "release/Claude Usage Dashboard/runtime"
           
           # Copy launcher
           cp "src-tauri/target/${{ matrix.target }}/release/claude-dashboard-launcher" "release/Claude Usage Dashboard/claude-dashboard"
@@ -125,7 +126,6 @@ jobs:
           [ -d "public" ] && cp -r public "release/Claude Usage Dashboard/server/"
           
           # Copy Node.js runtime
-          mkdir -p "release/Claude Usage Dashboard/runtime"
           cp "portable-node/bin/node" "release/Claude Usage Dashboard/runtime/"
           chmod +x "release/Claude Usage Dashboard/runtime/node"
           
