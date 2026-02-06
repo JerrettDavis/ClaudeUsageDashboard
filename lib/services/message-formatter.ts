@@ -1,32 +1,39 @@
 /**
- * Formats Claude JSONL messages into terminal-style output
+ * Formats Claude/Clawdbot JSONL messages into terminal-style output
+ * Supports both Claude Code and Clawdbot session formats
  */
 
-interface ClaudeMessage {
-  type: 'user' | 'assistant';
-  message: {
-    content: Array<{
-      type: 'text' | 'tool_use' | 'tool_result';
-      text?: string;
-      name?: string;
-      input?: Record<string, unknown>;
-      content?: string | Array<{ type: string; text?: string }>;
-      tool_use_id?: string;
-      is_error?: boolean;
-    }>;
-    role?: string;
+interface SessionMessage {
+  type: 'user' | 'assistant' | 'message' | 'toolResult';
+  message?: {
+    role?: 'user' | 'assistant' | 'toolResult';
+    content: unknown;
     stop_reason?: string | null;
+    provider?: string;
+    model?: string;
   };
   timestamp?: string;
 }
 
-export function formatMessageAsTerminal(msg: ClaudeMessage): string[] {
+export function formatMessageAsTerminal(msg: SessionMessage): string[] {
   const lines: string[] = [];
 
   // Safety checks
-  if (!msg || !msg.type || !msg.message?.content) return lines;
+  if (!msg) return lines;
+  
+  // Determine the message type - handle both Claude and Clawdbot formats
+  // Claude: type is 'user' or 'assistant'
+  // Clawdbot: type is 'message', role is in message.role
+  let msgType = msg.type;
+  if (msg.type === 'message' && msg.message?.role) {
+    msgType = msg.message.role as any;
+  }
+  
+  // Get content - could be on msg directly or in msg.message
+  const content = msg.message?.content;
+  if (!content) return lines;
 
-  if (msg.type === 'user') {
+  if (msgType === 'user') {
     // Format user input with ❯ prompt
     const content = msg.message.content;
 
@@ -46,8 +53,17 @@ export function formatMessageAsTerminal(msg: ClaudeMessage): string[] {
     return lines;
   }
 
-  if (msg.type === 'assistant') {
-    const content = msg.message.content;
+  // Handle tool results (Clawdbot format)
+  if (msgType === 'toolResult') {
+    const resultText = extractResultText(content);
+    if (resultText) {
+      const truncated = truncate(resultText, 100);
+      lines.push(`  ⎿  ${truncated}`);
+    }
+    return lines;
+  }
+
+  if (msgType === 'assistant') {
     const contentArray = Array.isArray(content) ? content : [content];
 
     for (const item of contentArray) {
@@ -56,10 +72,13 @@ export function formatMessageAsTerminal(msg: ClaudeMessage): string[] {
       if (item.type === 'text' && item.text) {
         // Regular assistant text with ● bullet
         lines.push(`● ${item.text}`);
-      } else if (item.type === 'tool_use') {
+      } else if (item.type === 'thinking' && item.thinking) {
+        // Thinking block (Clawdbot extended thinking)
+        lines.push(`💭 ${truncate(item.thinking, 80)}`);
+      } else if (item.type === 'tool_use' || item.type === 'toolCall') {
         // Tool call with ● and tool name
         const name = item.name || 'Unknown';
-        const input = item.input || {};
+        const input = item.input || item.arguments || {};
 
         // Format based on common tool types
         if (name === 'Bash' || name === 'powershell') {
