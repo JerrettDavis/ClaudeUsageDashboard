@@ -146,7 +146,7 @@ function truncate(text: string, maxLength: number): string {
  * Format a batch of messages with timestamps
  */
 export function formatMessagesWithTimestamps(
-  messages: ClaudeMessage[]
+  messages: SessionMessage[]
 ): Array<{ timestamp: string; lines: string[] }> {
   return messages.map((msg) => ({
     timestamp: msg.timestamp || new Date().toISOString(),
