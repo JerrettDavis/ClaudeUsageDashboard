@@ -118,10 +118,15 @@ jobs:
           # Copy launcher
           Copy-Item "src-tauri/target/${{ matrix.target }}/release/claude-dashboard-launcher.exe" "release/Claude Usage Dashboard/Claude Usage Dashboard.exe"
           
-          # Copy server (standalone includes .next)
+          # Clean standalone output before copying (remove dev artifacts)
+          Remove-Item -Recurse -Force ".next/standalone/data" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force ".next/standalone/tests" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force ".next/standalone/src-tauri" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force ".next/standalone/.git" -ErrorAction SilentlyContinue
+          
+          # Copy server (standalone includes .next, lib, drizzle)
           Get-ChildItem ".next/standalone" | Copy-Item -Destination "release/Claude Usage Dashboard/server/" -Recurse -Force
           Copy-Item -Recurse -Force ".next/static" "release/Claude Usage Dashboard/server/.next/"
-          if (Test-Path "public") { Copy-Item -Recurse -Force "public" "release/Claude Usage Dashboard/server/" }
           
           # Copy Node.js runtime
           Copy-Item "portable-node/node.exe" "release/Claude Usage Dashboard/runtime/"
@@ -139,10 +144,15 @@ jobs:
           cp "src-tauri/target/${{ matrix.target }}/release/claude-dashboard-launcher" "release/Claude Usage Dashboard/claude-dashboard"
           chmod +x "release/Claude Usage Dashboard/claude-dashboard"
           
-          # Copy server
+          # Clean standalone output before copying (remove dev artifacts)
+          rm -rf .next/standalone/data
+          rm -rf .next/standalone/tests
+          rm -rf .next/standalone/src-tauri
+          rm -rf .next/standalone/.git
+          
+          # Copy server (standalone includes .next, lib, drizzle)
           cp -r .next/standalone/* "release/Claude Usage Dashboard/server/"
           cp -r .next/static "release/Claude Usage Dashboard/server/.next/"
-          [ -d "public" ] && cp -r public "release/Claude Usage Dashboard/server/"
           
           # Copy Node.js runtime
           cp "portable-node/bin/node" "release/Claude Usage Dashboard/runtime/"
