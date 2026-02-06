@@ -1,5 +1,6 @@
 import type { AIProvider } from '@/types';
 import { claudeProvider } from './claude';
+import { clawdbotProvider } from './clawdbot';
 
 /**
  * Provider Registry
@@ -30,6 +31,7 @@ export const providerRegistry = new ProviderRegistry();
 
 // Register built-in providers
 providerRegistry.register(claudeProvider);
+providerRegistry.register(clawdbotProvider);
 
 // Export for easy access
-export { claudeProvider };
+export { claudeProvider, clawdbotProvider };
