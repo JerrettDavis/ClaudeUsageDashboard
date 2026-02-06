@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to build (e.g., v1.1.0)'
+        description: 'Tag to build (e.g., v1.2.0)'
         required: true
 
 permissions:
@@ -44,15 +44,23 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             node_arch: win-x64
+            artifact: claude-dashboard-windows.zip
+            exe_name: claude-usage-dashboard.exe
           - os: macos-latest
             target: x86_64-apple-darwin
             node_arch: darwin-x64
+            artifact: claude-dashboard-macos-x64.tar.gz
+            exe_name: claude-usage-dashboard
           - os: macos-latest
             target: aarch64-apple-darwin
             node_arch: darwin-arm64
+            artifact: claude-dashboard-macos-arm64.tar.gz
+            exe_name: claude-usage-dashboard
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             node_arch: linux-x64
+            artifact: claude-dashboard-linux.tar.gz
+            exe_name: claude-usage-dashboard
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -83,7 +91,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf imagemagick
 
       - name: Install dependencies
         run: npm ci
@@ -110,12 +118,7 @@ jobs:
       - name: Prepare server bundle
         shell: bash
         run: |
-          # Create bundle directory structure
-          mkdir -p bundle/server
-          mkdir -p bundle/runtime
           mkdir -p dist-placeholder
-          
-          # Create placeholder for Tauri frontendDist
           echo "<html><body>Loading...</body></html>" > dist-placeholder/index.html
           
           # Clean dev artifacts from standalone
@@ -124,17 +127,6 @@ jobs:
           rm -rf .next/standalone/src-tauri
           rm -rf .next/standalone/.git
           rm -rf .next/standalone/node_modules/.cache
-          
-          # Copy server to bundle
-          cp -r .next/standalone/* bundle/server/
-          cp -r .next/static bundle/server/.next/
-          
-          # Copy Node.js runtime to bundle
-          if [[ "${{ matrix.node_arch }}" == "win-x64" ]]; then
-            cp portable-node/node.exe bundle/runtime/
-          else
-            cp portable-node/node bundle/runtime/
-          fi
 
       - name: Generate icons
         shell: bash
@@ -142,7 +134,6 @@ jobs:
           mkdir -p src-tauri/icons
           
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            sudo apt-get install -y librsvg2-bin imagemagick
             rsvg-convert -w 512 -h 512 public/icon.svg > src-tauri/icons/icon.png
             convert src-tauri/icons/icon.png -define icon:auto-resize=256,128,64,48,32,16 src-tauri/icons/icon.ico
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
@@ -150,22 +141,89 @@ jobs:
             rsvg-convert -w 512 -h 512 public/icon.svg > src-tauri/icons/icon.png
             convert src-tauri/icons/icon.png -define icon:auto-resize=256,128,64,48,32,16 src-tauri/icons/icon.ico
           else
-            # Windows: use imagemagick from choco
             choco install imagemagick -y
             magick convert -background none -resize 512x512 public/icon.svg src-tauri/icons/icon.png
             magick convert src-tauri/icons/icon.png -define icon:auto-resize=256,128,64,48,32,16 src-tauri/icons/icon.ico
           fi
 
-      - name: Build Tauri app
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ""
+      - name: Build Tauri (no bundling)
+        shell: bash
+        run: |
+          cd src-tauri
+          cargo build --release --target ${{ matrix.target }}
+
+      - name: Package (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $releaseDir = "release/Claude Usage Dashboard"
+          New-Item -ItemType Directory -Path "$releaseDir/server" -Force
+          New-Item -ItemType Directory -Path "$releaseDir/runtime" -Force
+          
+          # Copy Tauri executable
+          Copy-Item "src-tauri/target/${{ matrix.target }}/release/${{ matrix.exe_name }}" "$releaseDir/Claude Usage Dashboard.exe"
+          
+          # Copy server
+          Get-ChildItem ".next/standalone" | Copy-Item -Destination "$releaseDir/server/" -Recurse -Force
+          Copy-Item -Recurse -Force ".next/static" "$releaseDir/server/.next/"
+          
+          # Copy Node.js runtime
+          Copy-Item "portable-node/node.exe" "$releaseDir/runtime/"
+          
+          # Create zip
+          Compress-Archive -Path "release/Claude Usage Dashboard" -DestinationPath "release/${{ matrix.artifact }}"
+
+      - name: Package (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          RELEASE_DIR="release/Claude Usage Dashboard"
+          mkdir -p "$RELEASE_DIR/server/.next"
+          mkdir -p "$RELEASE_DIR/runtime"
+          
+          # Copy Tauri executable
+          cp "src-tauri/target/${{ matrix.target }}/release/${{ matrix.exe_name }}" "$RELEASE_DIR/Claude Usage Dashboard"
+          chmod +x "$RELEASE_DIR/Claude Usage Dashboard"
+          
+          # Copy server
+          cp -r .next/standalone/* "$RELEASE_DIR/server/"
+          cp -r .next/static "$RELEASE_DIR/server/.next/"
+          
+          # Copy Node.js runtime
+          cp portable-node/node "$RELEASE_DIR/runtime/"
+          chmod +x "$RELEASE_DIR/runtime/node"
+          
+          # Create tarball
+          cd release
+          tar -czvf "${{ matrix.artifact }}" "Claude Usage Dashboard"
+
+      - name: Package (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          RELEASE_DIR="release/Claude Usage Dashboard"
+          mkdir -p "$RELEASE_DIR/server/.next"
+          mkdir -p "$RELEASE_DIR/runtime"
+          
+          # Copy Tauri executable
+          cp "src-tauri/target/${{ matrix.target }}/release/${{ matrix.exe_name }}" "$RELEASE_DIR/claude-usage-dashboard"
+          chmod +x "$RELEASE_DIR/claude-usage-dashboard"
+          
+          # Copy server
+          cp -r .next/standalone/* "$RELEASE_DIR/server/"
+          cp -r .next/static "$RELEASE_DIR/server/.next/"
+          
+          # Copy Node.js runtime
+          cp portable-node/node "$RELEASE_DIR/runtime/"
+          chmod +x "$RELEASE_DIR/runtime/node"
+          
+          # Create tarball
+          cd release
+          tar -czvf "${{ matrix.artifact }}" "Claude Usage Dashboard"
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          tagName: ${{ steps.tag.outputs.tag }}
-          releaseName: ${{ steps.tag.outputs.tag }}
-          releaseBody: "See the release notes for details."
-          args: --target ${{ matrix.target }}
+          tag_name: ${{ steps.tag.outputs.tag }}
+          files: release/${{ matrix.artifact }}
 
   build-docker:
     if: |

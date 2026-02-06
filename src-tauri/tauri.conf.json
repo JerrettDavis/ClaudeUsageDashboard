@@ -34,11 +34,7 @@
       "icons/icon.png",
       "icons/icon.ico"
     ],
-    "targets": "all",
-    "resources": {
-      "../bundle/server/**/*": "server/",
-      "../bundle/runtime/*": "runtime/"
-    },
+    "targets": ["app", "dmg", "deb", "appimage"],
     "windows": {
       "webviewInstallMode": {
         "type": "downloadBootstrapper"
