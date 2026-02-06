@@ -20,10 +20,10 @@ const NODE_BINARY: &str = "node";
 struct ServerProcess(Mutex<Option<Child>>);
 
 fn get_resource_path(app: &tauri::AppHandle) -> PathBuf {
-    // In development, use the current directory
+    // In development, use the current directory + bundle
     // In production, use the resource directory
     if cfg!(debug_assertions) {
-        env::current_dir().unwrap()
+        env::current_dir().unwrap().join("bundle")
     } else {
         app.path().resource_dir().unwrap()
     }

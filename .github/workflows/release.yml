@@ -92,17 +92,16 @@ jobs:
         shell: bash
         run: |
           NODE_VERSION="v22.13.1"
-          mkdir -p src-tauri/runtime
-          mkdir -p src-tauri/server
+          mkdir -p portable-node
           
           if [[ "${{ matrix.node_arch }}" == "win-x64" ]]; then
             curl -L "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-win-x64.zip" -o node.zip
             unzip node.zip
-            cp node-${NODE_VERSION}-win-x64/node.exe src-tauri/runtime/
+            cp node-${NODE_VERSION}-win-x64/node.exe portable-node/
           else
             curl -L "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-${{ matrix.node_arch }}.tar.gz" -o node.tar.gz
             tar -xzf node.tar.gz
-            cp node-${NODE_VERSION}-${{ matrix.node_arch }}/bin/node src-tauri/runtime/
+            cp node-${NODE_VERSION}-${{ matrix.node_arch }}/bin/node portable-node/
           fi
 
       - name: Build Next.js standalone
@@ -111,15 +110,31 @@ jobs:
       - name: Prepare server bundle
         shell: bash
         run: |
-          # Clean dev artifacts
+          # Create bundle directory structure
+          mkdir -p bundle/server
+          mkdir -p bundle/runtime
+          mkdir -p dist-placeholder
+          
+          # Create placeholder for Tauri frontendDist
+          echo "<html><body>Loading...</body></html>" > dist-placeholder/index.html
+          
+          # Clean dev artifacts from standalone
           rm -rf .next/standalone/data
           rm -rf .next/standalone/tests
           rm -rf .next/standalone/src-tauri
           rm -rf .next/standalone/.git
+          rm -rf .next/standalone/node_modules/.cache
           
-          # Copy to src-tauri for bundling
-          cp -r .next/standalone/* src-tauri/server/
-          cp -r .next/static src-tauri/server/.next/
+          # Copy server to bundle
+          cp -r .next/standalone/* bundle/server/
+          cp -r .next/static bundle/server/.next/
+          
+          # Copy Node.js runtime to bundle
+          if [[ "${{ matrix.node_arch }}" == "win-x64" ]]; then
+            cp portable-node/node.exe bundle/runtime/
+          else
+            cp portable-node/node bundle/runtime/
+          fi
 
       - name: Generate icons
         shell: bash

@@ -2,12 +2,12 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Claude Usage Dashboard",
   "version": "1.2.0",
-  "identifier": "com.claudeusagedashboard.app",
+  "identifier": "com.claudeusagedashboard.desktop",
   "build": {
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "",
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:3000",
-    "frontendDist": "../.next/standalone"
+    "frontendDist": "../dist-placeholder"
   },
   "app": {
     "withGlobalTauri": false,
@@ -39,8 +39,8 @@
     ],
     "targets": "all",
     "resources": {
-      "server/**/*": "server/",
-      "runtime/*": "runtime/"
+      "../bundle/server/**/*": "server/",
+      "../bundle/runtime/*": "runtime/"
     },
     "windows": {
       "webviewInstallMode": {
