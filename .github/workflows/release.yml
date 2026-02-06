@@ -144,43 +144,15 @@ jobs:
           # Install rsvg-convert for SVG to PNG conversion
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             sudo apt-get install -y librsvg2-bin
+            rsvg-convert -w 512 -h 512 public/icon.svg > src-tauri/icons/icon.png
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
             brew install librsvg
-          fi
-          
-          # Convert SVG to various PNG sizes (Windows uses magick, others use rsvg)
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            rsvg-convert -w 512 -h 512 public/icon.svg > src-tauri/icons/icon.png
+          else
             # Windows: use npm sharp-cli
             npm install -g sharp-cli
-            sharp -i public/icon.svg -o src-tauri/icons/32x32.png resize 32 32
-            sharp -i public/icon.svg -o src-tauri/icons/128x128.png resize 128 128
-            sharp -i public/icon.svg -o src-tauri/icons/128x128@2x.png resize 256 256
             sharp -i public/icon.svg -o src-tauri/icons/icon.png resize 512 512
-            cp src-tauri/icons/icon.png src-tauri/icons/icon.ico
-          else
-            rsvg-convert -w 32 -h 32 public/icon.svg > src-tauri/icons/32x32.png
-            rsvg-convert -w 128 -h 128 public/icon.svg > src-tauri/icons/128x128.png
-            rsvg-convert -w 256 -h 256 public/icon.svg > src-tauri/icons/128x128@2x.png
-            rsvg-convert -w 512 -h 512 public/icon.svg > src-tauri/icons/icon.png
-            if [[ "$RUNNER_OS" == "macOS" ]]; then
-              # Create icns for macOS
-              mkdir -p icon.iconset
-              rsvg-convert -w 16 -h 16 public/icon.svg > icon.iconset/icon_16x16.png
-              rsvg-convert -w 32 -h 32 public/icon.svg > icon.iconset/icon_16x16@2x.png
-              rsvg-convert -w 32 -h 32 public/icon.svg > icon.iconset/icon_32x32.png
-              rsvg-convert -w 64 -h 64 public/icon.svg > icon.iconset/icon_32x32@2x.png
-              rsvg-convert -w 128 -h 128 public/icon.svg > icon.iconset/icon_128x128.png
-              rsvg-convert -w 256 -h 256 public/icon.svg > icon.iconset/icon_128x128@2x.png
-              rsvg-convert -w 256 -h 256 public/icon.svg > icon.iconset/icon_256x256.png
-              rsvg-convert -w 512 -h 512 public/icon.svg > icon.iconset/icon_256x256@2x.png
-              rsvg-convert -w 512 -h 512 public/icon.svg > icon.iconset/icon_512x512.png
-              rsvg-convert -w 1024 -h 1024 public/icon.svg > icon.iconset/icon_512x512@2x.png
-              iconutil -c icns icon.iconset -o src-tauri/icons/icon.icns
-            fi
           fi
-          
-          # Create ico for Windows (copy png as placeholder)
-          cp src-tauri/icons/icon.png src-tauri/icons/icon.ico 2>/dev/null || true
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
