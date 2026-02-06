@@ -53,7 +53,7 @@ export function formatMessageAsTerminal(msg: SessionMessage): string[] {
 
   // Handle tool results (Clawdbot format)
   if (msgType === 'toolResult') {
-    const resultText = extractResultText(content);
+    const resultText = extractResultText(content as string | Array<{ type: string; text?: string }> | undefined);
     if (resultText) {
       const truncated = truncate(resultText, 100);
       lines.push(`  ⎿  ${truncated}`);

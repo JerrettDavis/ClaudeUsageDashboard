@@ -410,7 +410,7 @@ export function TilingMonitor() {
   const [sessions, setSessions] = useState<string[]>([]);
   const [availableSessions, setAvailableSessions] = useState<string[]>([]);
   const [showPicker, setShowPicker] = useState(false);
-  const [autoOpen, setAutoOpen] = useState(false);
+  const [autoOpen, setAutoOpen] = useState(true); // Auto-open enabled by default
   const [autoClose, setAutoClose] = useState(false);
 
   // Listen for new sessions and auto-add/remove
@@ -502,12 +502,14 @@ export function TilingMonitor() {
       <div className="flex items-center justify-between px-4 py-3 border-b border-cyan-500/30 bg-zinc-900">
         <div className="flex items-center gap-3">
           <Link href="/dashboard">
-            <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-cyan-400">
-              <Home className="h-4 w-4" />
+            <Button variant="outline" size="sm" className="text-cyan-400 border-cyan-500/50 hover:bg-cyan-500/20 hover:text-cyan-300">
+              <Home className="h-4 w-4 mr-2" />
+              Dashboard
             </Button>
           </Link>
+          <div className="h-6 w-px bg-zinc-700" />
           <Terminal className="h-5 w-5 text-cyan-400" />
-          <h1 className="text-lg font-semibold text-cyan-400 font-mono">TILING SESSION MONITOR</h1>
+          <h1 className="text-lg font-semibold text-cyan-400 font-mono">SESSION MONITOR</h1>
           <span className="text-xs text-zinc-600 font-mono">{sessions.length} active</span>
         </div>
 
