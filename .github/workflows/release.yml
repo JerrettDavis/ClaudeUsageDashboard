@@ -144,9 +144,11 @@ jobs:
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             sudo apt-get install -y librsvg2-bin imagemagick
             rsvg-convert -w 512 -h 512 public/icon.svg > src-tauri/icons/icon.png
+            convert src-tauri/icons/icon.png -define icon:auto-resize=256,128,64,48,32,16 src-tauri/icons/icon.ico
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
             brew install librsvg imagemagick
             rsvg-convert -w 512 -h 512 public/icon.svg > src-tauri/icons/icon.png
+            convert src-tauri/icons/icon.png -define icon:auto-resize=256,128,64,48,32,16 src-tauri/icons/icon.ico
           else
             # Windows: use imagemagick from choco
             choco install imagemagick -y
