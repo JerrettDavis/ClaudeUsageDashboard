@@ -113,8 +113,8 @@ jobs:
           
           # Copy server (standalone includes .next)
           Get-ChildItem ".next/standalone" | Copy-Item -Destination "release/Claude Usage Dashboard/server/" -Recurse -Force
-          Copy-Item -Recurse ".next/static" "release/Claude Usage Dashboard/server/.next/"
-          if (Test-Path "public") { Copy-Item -Recurse "public" "release/Claude Usage Dashboard/server/" }
+          Copy-Item -Recurse -Force ".next/static" "release/Claude Usage Dashboard/server/.next/"
+          if (Test-Path "public") { Copy-Item -Recurse -Force "public" "release/Claude Usage Dashboard/server/" }
           
           # Copy Node.js runtime
           Copy-Item "portable-node/node.exe" "release/Claude Usage Dashboard/runtime/"
