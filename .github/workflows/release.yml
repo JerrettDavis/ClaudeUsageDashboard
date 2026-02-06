@@ -141,17 +141,17 @@ jobs:
         run: |
           mkdir -p src-tauri/icons
           
-          # Install rsvg-convert for SVG to PNG conversion
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            sudo apt-get install -y librsvg2-bin
+            sudo apt-get install -y librsvg2-bin imagemagick
             rsvg-convert -w 512 -h 512 public/icon.svg > src-tauri/icons/icon.png
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            brew install librsvg
+            brew install librsvg imagemagick
             rsvg-convert -w 512 -h 512 public/icon.svg > src-tauri/icons/icon.png
           else
-            # Windows: use npm sharp-cli
-            npm install -g sharp-cli
-            sharp -i public/icon.svg -o src-tauri/icons/icon.png resize 512 512
+            # Windows: use imagemagick from choco
+            choco install imagemagick -y
+            magick convert -background none -resize 512x512 public/icon.svg src-tauri/icons/icon.png
+            magick convert src-tauri/icons/icon.png -define icon:auto-resize=256,128,64,48,32,16 src-tauri/icons/icon.ico
           fi
 
       - name: Build Tauri app
