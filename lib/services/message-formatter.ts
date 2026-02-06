@@ -35,11 +35,9 @@ export function formatMessageAsTerminal(msg: SessionMessage): string[] {
 
   if (msgType === 'user') {
     // Format user input with ❯ prompt
-    const content = msg.message.content;
-
     // Handle content as array
     if (Array.isArray(content)) {
-      const textContent = content.find((c) => c && c.type === 'text');
+      const textContent = (content as Array<{type?: string; text?: string}>).find((c) => c && c.type === 'text');
       if (textContent?.text) {
         lines.push(`❯ ${textContent.text}`);
       }
@@ -64,7 +62,7 @@ export function formatMessageAsTerminal(msg: SessionMessage): string[] {
   }
 
   if (msgType === 'assistant') {
-    const contentArray = Array.isArray(content) ? content : [content];
+    const contentArray = (Array.isArray(content) ? content : [content]) as Array<Record<string, any>>;
 
     for (const item of contentArray) {
       if (!item) continue;
