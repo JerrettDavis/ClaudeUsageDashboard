@@ -30,7 +30,7 @@ jobs:
         with:
           release-type: node
 
-  build-and-upload:
+  build-tauri:
     if: |
       always() && (
         (github.event_name == 'push' && needs.release-please.outputs.release_created == 'true') ||
@@ -44,19 +44,15 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             node_arch: win-x64
-            artifact: claude-dashboard-windows.zip
           - os: macos-latest
             target: x86_64-apple-darwin
             node_arch: darwin-x64
-            artifact: claude-dashboard-macos-x64.tar.gz
           - os: macos-latest
             target: aarch64-apple-darwin
             node_arch: darwin-arm64
-            artifact: claude-dashboard-macos-arm64.tar.gz
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             node_arch: linux-x64
-            artifact: claude-dashboard-linux.tar.gz
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -83,90 +79,104 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
       - name: Install dependencies
         run: npm ci
-
-      - name: Build Next.js standalone
-        run: npm run build
 
       - name: Download portable Node.js
         shell: bash
         run: |
           NODE_VERSION="v22.13.1"
+          mkdir -p src-tauri/runtime
+          mkdir -p src-tauri/server
+          
           if [[ "${{ matrix.node_arch }}" == "win-x64" ]]; then
             curl -L "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-win-x64.zip" -o node.zip
             unzip node.zip
-            mv node-${NODE_VERSION}-win-x64 portable-node
+            cp node-${NODE_VERSION}-win-x64/node.exe src-tauri/runtime/
           else
             curl -L "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-${{ matrix.node_arch }}.tar.gz" -o node.tar.gz
             tar -xzf node.tar.gz
-            mv node-${NODE_VERSION}-${{ matrix.node_arch }} portable-node
+            cp node-${NODE_VERSION}-${{ matrix.node_arch }}/bin/node src-tauri/runtime/
           fi
 
-      - name: Build Rust launcher
-        run: |
-          cd src-tauri
-          cargo build --release --target ${{ matrix.target }}
+      - name: Build Next.js standalone
+        run: npm run build
 
-      - name: Package (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
+      - name: Prepare server bundle
+        shell: bash
         run: |
-          New-Item -ItemType Directory -Path "release/Claude Usage Dashboard/server" -Force
-          New-Item -ItemType Directory -Path "release/Claude Usage Dashboard/runtime" -Force
-          
-          # Copy launcher
-          Copy-Item "src-tauri/target/${{ matrix.target }}/release/claude-dashboard-launcher.exe" "release/Claude Usage Dashboard/Claude Usage Dashboard.exe"
-          
-          # Clean standalone output before copying (remove dev artifacts)
-          Remove-Item -Recurse -Force ".next/standalone/data" -ErrorAction SilentlyContinue
-          Remove-Item -Recurse -Force ".next/standalone/tests" -ErrorAction SilentlyContinue
-          Remove-Item -Recurse -Force ".next/standalone/src-tauri" -ErrorAction SilentlyContinue
-          Remove-Item -Recurse -Force ".next/standalone/.git" -ErrorAction SilentlyContinue
-          
-          # Copy server (standalone includes .next, lib, drizzle)
-          Get-ChildItem ".next/standalone" | Copy-Item -Destination "release/Claude Usage Dashboard/server/" -Recurse -Force
-          Copy-Item -Recurse -Force ".next/static" "release/Claude Usage Dashboard/server/.next/"
-          
-          # Copy Node.js runtime
-          Copy-Item "portable-node/node.exe" "release/Claude Usage Dashboard/runtime/"
-          
-          # Create zip
-          Compress-Archive -Path "release/Claude Usage Dashboard" -DestinationPath "release/${{ matrix.artifact }}"
-
-      - name: Package (Unix)
-        if: matrix.os != 'windows-latest'
-        run: |
-          mkdir -p "release/Claude Usage Dashboard/server/.next"
-          mkdir -p "release/Claude Usage Dashboard/runtime"
-          
-          # Copy launcher
-          cp "src-tauri/target/${{ matrix.target }}/release/claude-dashboard-launcher" "release/Claude Usage Dashboard/claude-dashboard"
-          chmod +x "release/Claude Usage Dashboard/claude-dashboard"
-          
-          # Clean standalone output before copying (remove dev artifacts)
+          # Clean dev artifacts
           rm -rf .next/standalone/data
           rm -rf .next/standalone/tests
           rm -rf .next/standalone/src-tauri
           rm -rf .next/standalone/.git
           
-          # Copy server (standalone includes .next, lib, drizzle)
-          cp -r .next/standalone/* "release/Claude Usage Dashboard/server/"
-          cp -r .next/static "release/Claude Usage Dashboard/server/.next/"
-          
-          # Copy Node.js runtime
-          cp "portable-node/bin/node" "release/Claude Usage Dashboard/runtime/"
-          chmod +x "release/Claude Usage Dashboard/runtime/node"
-          
-          # Create tarball
-          cd release
-          tar -czvf "${{ matrix.artifact }}" "Claude Usage Dashboard"
+          # Copy to src-tauri for bundling
+          cp -r .next/standalone/* src-tauri/server/
+          cp -r .next/static src-tauri/server/.next/
 
-      - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Generate icons
+        shell: bash
+        run: |
+          mkdir -p src-tauri/icons
+          
+          # Install rsvg-convert for SVG to PNG conversion
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            sudo apt-get install -y librsvg2-bin
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            brew install librsvg
+          fi
+          
+          # Convert SVG to various PNG sizes (Windows uses magick, others use rsvg)
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            # Windows: use npm sharp-cli
+            npm install -g sharp-cli
+            sharp -i public/icon.svg -o src-tauri/icons/32x32.png resize 32 32
+            sharp -i public/icon.svg -o src-tauri/icons/128x128.png resize 128 128
+            sharp -i public/icon.svg -o src-tauri/icons/128x128@2x.png resize 256 256
+            sharp -i public/icon.svg -o src-tauri/icons/icon.png resize 512 512
+            cp src-tauri/icons/icon.png src-tauri/icons/icon.ico
+          else
+            rsvg-convert -w 32 -h 32 public/icon.svg > src-tauri/icons/32x32.png
+            rsvg-convert -w 128 -h 128 public/icon.svg > src-tauri/icons/128x128.png
+            rsvg-convert -w 256 -h 256 public/icon.svg > src-tauri/icons/128x128@2x.png
+            rsvg-convert -w 512 -h 512 public/icon.svg > src-tauri/icons/icon.png
+            if [[ "$RUNNER_OS" == "macOS" ]]; then
+              # Create icns for macOS
+              mkdir -p icon.iconset
+              rsvg-convert -w 16 -h 16 public/icon.svg > icon.iconset/icon_16x16.png
+              rsvg-convert -w 32 -h 32 public/icon.svg > icon.iconset/icon_16x16@2x.png
+              rsvg-convert -w 32 -h 32 public/icon.svg > icon.iconset/icon_32x32.png
+              rsvg-convert -w 64 -h 64 public/icon.svg > icon.iconset/icon_32x32@2x.png
+              rsvg-convert -w 128 -h 128 public/icon.svg > icon.iconset/icon_128x128.png
+              rsvg-convert -w 256 -h 256 public/icon.svg > icon.iconset/icon_128x128@2x.png
+              rsvg-convert -w 256 -h 256 public/icon.svg > icon.iconset/icon_256x256.png
+              rsvg-convert -w 512 -h 512 public/icon.svg > icon.iconset/icon_256x256@2x.png
+              rsvg-convert -w 512 -h 512 public/icon.svg > icon.iconset/icon_512x512.png
+              rsvg-convert -w 1024 -h 1024 public/icon.svg > icon.iconset/icon_512x512@2x.png
+              iconutil -c icns icon.iconset -o src-tauri/icons/icon.icns
+            fi
+          fi
+          
+          # Create ico for Windows (copy png as placeholder)
+          cp src-tauri/icons/icon.png src-tauri/icons/icon.ico 2>/dev/null || true
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ""
         with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          files: release/${{ matrix.artifact }}
+          tagName: ${{ steps.tag.outputs.tag }}
+          releaseName: ${{ steps.tag.outputs.tag }}
+          releaseBody: "See the release notes for details."
+          args: --target ${{ matrix.target }}
 
   build-docker:
     if: |
