@@ -305,7 +305,8 @@ export class ClawdbotProvider implements AIProvider {
           id: randomUUID(),
           sessionId,
           parentId: msg.parentUuid || null,
-          role: msg.type,
+          // Map toolResult to assistant since DB only accepts user/assistant
+          role: (msg.type === 'toolResult' ? 'assistant' : msg.type) as 'user' | 'assistant',
           content: JSON.stringify(msg.content),
           timestamp: new Date(msg.timestamp),
           tokens: msg.tokens || 0,
