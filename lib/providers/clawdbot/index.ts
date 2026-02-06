@@ -274,7 +274,7 @@ export class ClawdbotProvider implements AIProvider {
     const sessionData = {
       endTime,
       lastActivity,
-      status: isRecentlyModified ? 'active' : 'completed' as const,
+      status: (isRecentlyModified ? 'active' : 'completed') as 'active' | 'completed' | 'error',
       messageCount: parsed.messages.length,
       tokensInput: parsed.tokensInput,
       tokensOutput: parsed.tokensOutput,
