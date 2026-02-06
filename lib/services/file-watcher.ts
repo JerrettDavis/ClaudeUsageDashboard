@@ -11,16 +11,28 @@ interface FileState {
 
 export class FileWatcherService {
   private isRunning = false;
-  private watchPath: string;
+  private watchPaths: { path: string; provider: string; scanFunc: (path: string) => Promise<string[]> }[] = [];
   private fileStates: Map<string, FileState> = new Map();
   private pollInterval: NodeJS.Timeout | null = null;
   private readonly POLL_INTERVAL_MS = 1000; // Poll every 1 second
   private seenSessions: Set<string> = new Set(); // Track sessions we've already emitted session:new for
 
-  constructor(claudeDir?: string) {
+  constructor() {
     const homeDir = process.env.HOME || process.env.USERPROFILE || '';
-    const basePath = claudeDir || join(homeDir, '.claude', 'projects');
-    this.watchPath = basePath.replace(/\\/g, '/');
+    
+    // Claude Code sessions
+    this.watchPaths.push({
+      path: join(homeDir, '.claude', 'projects').replace(/\\/g, '/'),
+      provider: 'claude',
+      scanFunc: this.scanClaudeDir.bind(this),
+    });
+    
+    // Clawdbot/OpenClaw sessions
+    this.watchPaths.push({
+      path: join(homeDir, '.clawdbot', 'agents').replace(/\\/g, '/'),
+      provider: 'clawdbot',
+      scanFunc: this.scanClawdbotDir.bind(this),
+    });
   }
 
   async start() {
@@ -29,7 +41,8 @@ export class FileWatcherService {
       return;
     }
 
-    console.log(`[FileWatcher] Starting manual polling on: ${this.watchPath}`);
+    const activePaths = this.watchPaths.map(p => p.path).join(', ');
+    console.log(`[FileWatcher] Starting manual polling on: ${activePaths}`);
 
     // Initial scan
     await this.scanAndInitialize();
@@ -58,38 +71,70 @@ export class FileWatcherService {
   getStatus() {
     return {
       isRunning: this.isRunning,
-      watchPath: this.watchPath,
+      watchPaths: this.watchPaths.map(p => p.path),
       watchedFiles: this.fileStates.size,
     };
   }
 
   private async scanAndInitialize() {
-    try {
-      const projectDirs = await readdir(this.watchPath.replace(/\//g, '\\'));
-      console.log(`[FileWatcher] Scanning ${projectDirs.length} project directories`);
-
-      for (const dir of projectDirs) {
-        const dirPath = join(this.watchPath.replace(/\//g, '\\'), dir);
-        try {
-          const files = await readdir(dirPath);
-          const jsonlFiles = files.filter((f) => f.endsWith('.jsonl'));
-
-          for (const file of jsonlFiles) {
-            const filePath = join(dirPath, file).replace(/\\/g, '/');
-            await this.initializeFile(filePath);
-          }
-        } catch (_error) {
-          // Skip directories we can't read
+    for (const watchConfig of this.watchPaths) {
+      try {
+        const files = await watchConfig.scanFunc(watchConfig.path);
+        console.log(`[FileWatcher] Found ${files.length} ${watchConfig.provider} session files`);
+        
+        for (const filePath of files) {
+          await this.initializeFile(filePath, watchConfig.provider);
         }
+      } catch (error) {
+        console.log(`[FileWatcher] ${watchConfig.provider} path not accessible: ${watchConfig.path}`);
       }
-
-      console.log(`[FileWatcher] Initialized ${this.fileStates.size} files`);
-    } catch (error) {
-      console.error('[FileWatcher] Error scanning directories:', error);
     }
+    console.log(`[FileWatcher] Initialized ${this.fileStates.size} total files`);
   }
 
-  private async initializeFile(filePath: string) {
+  // Scan Claude Code project directories
+  private async scanClaudeDir(basePath: string): Promise<string[]> {
+    const files: string[] = [];
+    const projectDirs = await readdir(basePath.replace(/\//g, '\\'));
+    
+    for (const dir of projectDirs) {
+      const dirPath = join(basePath.replace(/\//g, '\\'), dir);
+      try {
+        const dirFiles = await readdir(dirPath);
+        const jsonlFiles = dirFiles.filter((f) => f.endsWith('.jsonl'));
+        
+        for (const file of jsonlFiles) {
+          files.push(join(dirPath, file).replace(/\\/g, '/'));
+        }
+      } catch (_error) {
+        // Skip directories we can't read
+      }
+    }
+    return files;
+  }
+
+  // Scan Clawdbot agent session directories
+  private async scanClawdbotDir(basePath: string): Promise<string[]> {
+    const files: string[] = [];
+    const agentDirs = await readdir(basePath.replace(/\//g, '\\'));
+    
+    for (const agent of agentDirs) {
+      const sessionsPath = join(basePath.replace(/\//g, '\\'), agent, 'sessions');
+      try {
+        const sessionFiles = await readdir(sessionsPath);
+        const jsonlFiles = sessionFiles.filter((f) => f.endsWith('.jsonl'));
+        
+        for (const file of jsonlFiles) {
+          files.push(join(sessionsPath, file).replace(/\\/g, '/'));
+        }
+      } catch (_error) {
+        // Skip if sessions dir doesn't exist
+      }
+    }
+    return files;
+  }
+
+  private async initializeFile(filePath: string, provider: string = 'claude') {
     try {
       const normalizedPath = filePath.replace(/\//g, '\\');
       const stats = await stat(normalizedPath);
@@ -102,10 +147,10 @@ export class FileWatcherService {
         lastModified: stats.mtimeMs,
       });
 
-      console.log(`[FileWatcher] 📝 Tracking ${filePath.split('/').pop()} (${lines.length} lines)`);
+      console.log(`[FileWatcher] 📝 [${provider}] Tracking ${filePath.split('/').pop()} (${lines.length} lines)`);
 
       // Mark this session as seen so we can detect new sessions later
-      const sessionId = this.extractSessionId(filePath);
+      const sessionId = this.extractSessionId(filePath, provider);
       if (sessionId) {
         this.seenSessions.add(sessionId);
       }
@@ -230,11 +275,22 @@ export class FileWatcherService {
     }
   }
 
-  private extractSessionId(filePath: string): string | null {
+  private extractSessionId(filePath: string, provider: string = 'claude'): string | null {
     // Extract filename without .jsonl extension
     const filename = filePath.split('/').pop();
     if (!filename) return null;
-    return filename.replace(/\.jsonl$/, '');
+    const baseId = filename.replace(/\.jsonl$/, '');
+    
+    // Prefix with provider for clawdbot to differentiate
+    if (provider === 'clawdbot') {
+      // Extract agent name from path (e.g., .clawdbot/agents/main/sessions/xxx.jsonl -> main)
+      const parts = filePath.split('/');
+      const agentsIdx = parts.findIndex(p => p === 'agents');
+      const agent = agentsIdx >= 0 && parts[agentsIdx + 1] ? parts[agentsIdx + 1] : 'unknown';
+      return `clawdbot-${agent}-${baseId}`;
+    }
+    
+    return baseId;
   }
 }
 
