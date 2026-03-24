@@ -21,6 +21,7 @@ export class WorkerPool<TJobData = unknown, TResult = unknown> {
     callback: WorkerCallback<TResult>;
   }> = [];
   private activeJobs = new Map<string, WorkerCallback<TResult>>();
+  private _terminating = false;
 
   constructor(private config: WorkerPoolConfig) {
     this.initializeWorkers();
@@ -41,7 +42,7 @@ export class WorkerPool<TJobData = unknown, TResult = unknown> {
       });
 
       worker.on('exit', (code) => {
-        if (code !== 0) {
+        if (code !== 0 && !this._terminating) {
           console.error(`Worker stopped with exit code ${code}`);
         }
       });
@@ -105,6 +106,7 @@ export class WorkerPool<TJobData = unknown, TResult = unknown> {
    * Terminate all workers
    */
   async terminate() {
+    this._terminating = true;
     await Promise.all(this.workers.map((worker) => worker.terminate()));
     this.workers = [];
     this.availableWorkers = [];

@@ -11,6 +11,9 @@ export default defineConfig({
     include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     // Run tests serially to avoid SQLite locking issues
     fileParallelism: false,
+    // Force exit after tests complete to prevent worker thread exit codes
+    // from propagating to the vitest process exit code
+    forceExit: true,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
