@@ -8,8 +8,8 @@ async function findSessionFile(sessionId: string): Promise<string | null> {
   // Turbopack's NFT from tracing these runtime-only home-directory paths
   // back to the project root during the build.
   const homeDir =
-    (/*turbopackIgnore: true*/ process.env.HOME) ||
-    (/*turbopackIgnore: true*/ process.env.USERPROFILE) ||
+    /*turbopackIgnore: true*/ process.env.HOME ||
+    /*turbopackIgnore: true*/ process.env.USERPROFILE ||
     '';
 
   // Search locations: Claude projects + Clawdbot agents

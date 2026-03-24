@@ -1,5 +1,4 @@
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { Worker } from 'node:worker_threads';
 import type { WorkerJob, WorkerResult } from '@/types';
 
@@ -29,14 +28,13 @@ export class WorkerPool<TJobData = unknown, TResult = unknown> {
   }
 
   private initializeWorkers() {
-    // Resolve the worker script path relative to this file's directory so that
-    // Turbopack can statically determine the referenced file during NFT tracing
-    // (unlike path.resolve(process.cwd(), ...) which sweeps the entire project).
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
-    const workerPath = path.resolve(__dirname, this.config.workerPath);
+    // Resolve the worker script path relative to the project root so that
+    // callers can pass paths like 'lib/workers/parser.worker.mjs' without
+    // doubling the directory prefix that __dirname already contains.
+    const workerPath = path.resolve(process.cwd(), this.config.workerPath);
 
     for (let i = 0; i < this.config.poolSize; i++) {
+      // turbopackIgnore: true
       const worker = new Worker(workerPath);
 
       worker.on('message', (result: WorkerResult<TResult>) => {
@@ -147,7 +145,7 @@ export class WorkerPool<TJobData = unknown, TResult = unknown> {
  */
 export function createParserPool(poolSize = 4) {
   return new WorkerPool({
-    workerPath: 'parser.worker.mjs',
+    workerPath: 'lib/workers/parser.worker.mjs',
     poolSize,
   });
 }
