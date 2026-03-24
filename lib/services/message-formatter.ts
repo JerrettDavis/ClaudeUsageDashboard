@@ -20,7 +20,7 @@ export function formatMessageAsTerminal(msg: SessionMessage): string[] {
 
   // Safety checks
   if (!msg) return lines;
-  
+
   // Determine the message type - handle both Claude and Clawdbot formats
   // Claude: type is 'user' or 'assistant'
   // Clawdbot: type is 'message', role is in message.role
@@ -28,7 +28,7 @@ export function formatMessageAsTerminal(msg: SessionMessage): string[] {
   if (msg.type === 'message' && msg.message?.role) {
     msgType = msg.message.role as any;
   }
-  
+
   // Get content - could be on msg directly or in msg.message
   const content = msg.message?.content;
   if (!content) return lines;
@@ -37,7 +37,9 @@ export function formatMessageAsTerminal(msg: SessionMessage): string[] {
     // Format user input with ❯ prompt
     // Handle content as array
     if (Array.isArray(content)) {
-      const textContent = (content as Array<{type?: string; text?: string}>).find((c) => c && c.type === 'text');
+      const textContent = (content as Array<{ type?: string; text?: string }>).find(
+        (c) => c && c.type === 'text'
+      );
       if (textContent?.text) {
         lines.push(`❯ ${textContent.text}`);
       }
@@ -53,7 +55,9 @@ export function formatMessageAsTerminal(msg: SessionMessage): string[] {
 
   // Handle tool results (Clawdbot format)
   if (msgType === 'toolResult') {
-    const resultText = extractResultText(content as string | Array<{ type: string; text?: string }> | undefined);
+    const resultText = extractResultText(
+      content as string | Array<{ type: string; text?: string }> | undefined
+    );
     if (resultText) {
       const truncated = truncate(resultText, 100);
       lines.push(`  ⎿  ${truncated}`);
@@ -62,7 +66,9 @@ export function formatMessageAsTerminal(msg: SessionMessage): string[] {
   }
 
   if (msgType === 'assistant') {
-    const contentArray = (Array.isArray(content) ? content : [content]) as Array<Record<string, any>>;
+    const contentArray = (Array.isArray(content) ? content : [content]) as Array<
+      Record<string, any>
+    >;
 
     for (const item of contentArray) {
       if (!item) continue;

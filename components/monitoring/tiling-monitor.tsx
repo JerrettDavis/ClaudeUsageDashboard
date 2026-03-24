@@ -502,7 +502,11 @@ export function TilingMonitor() {
       <div className="flex items-center justify-between px-4 py-3 border-b border-cyan-500/30 bg-zinc-900">
         <div className="flex items-center gap-3">
           <Link href="/dashboard">
-            <Button variant="outline" size="sm" className="text-cyan-400 border-cyan-500/50 hover:bg-cyan-500/20 hover:text-cyan-300">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-cyan-400 border-cyan-500/50 hover:bg-cyan-500/20 hover:text-cyan-300"
+            >
               <Home className="h-4 w-4 mr-2" />
               Dashboard
             </Button>

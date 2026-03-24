@@ -1,9 +1,9 @@
 'use client';
 
-import { Home, Zap, LayoutGrid } from 'lucide-react';
+import { Home, LayoutGrid, Zap } from 'lucide-react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { LiveLogsPanel } from '@/components/monitoring/live-logs-panel';
+import { Button } from '@/components/ui/button';
 
 export default function MonitoringPage() {
   return (
@@ -21,13 +21,21 @@ export default function MonitoringPage() {
         </div>
         <div className="flex items-center gap-2">
           <Link href="/monitoring/sessions">
-            <Button variant="outline" size="sm" className="text-cyan-400 border-cyan-500/50 hover:bg-cyan-500/20">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-cyan-400 border-cyan-500/50 hover:bg-cyan-500/20"
+            >
               <LayoutGrid className="h-4 w-4 mr-2" />
               Tiling View
             </Button>
           </Link>
           <Link href="/dashboard">
-            <Button variant="outline" size="sm" className="text-cyan-400 border-cyan-500/50 hover:bg-cyan-500/20">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-cyan-400 border-cyan-500/50 hover:bg-cyan-500/20"
+            >
               <Home className="h-4 w-4 mr-2" />
               Dashboard
             </Button>

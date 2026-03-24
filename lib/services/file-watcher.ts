@@ -11,7 +11,11 @@ interface FileState {
 
 export class FileWatcherService {
   private isRunning = false;
-  private watchPaths: { path: string; provider: string; scanFunc: (path: string) => Promise<string[]> }[] = [];
+  private watchPaths: {
+    path: string;
+    provider: string;
+    scanFunc: (path: string) => Promise<string[]>;
+  }[] = [];
   private fileStates: Map<string, FileState> = new Map();
   private pollInterval: NodeJS.Timeout | null = null;
   private readonly POLL_INTERVAL_MS = 1000; // Poll every 1 second
@@ -19,14 +23,14 @@ export class FileWatcherService {
 
   constructor() {
     const homeDir = process.env.HOME || process.env.USERPROFILE || '';
-    
+
     // Claude Code sessions
     this.watchPaths.push({
       path: join(homeDir, '.claude', 'projects').replace(/\\/g, '/'),
       provider: 'claude',
       scanFunc: this.scanClaudeDir.bind(this),
     });
-    
+
     // Clawdbot/OpenClaw sessions
     this.watchPaths.push({
       path: join(homeDir, '.clawdbot', 'agents').replace(/\\/g, '/'),
@@ -41,7 +45,7 @@ export class FileWatcherService {
       return;
     }
 
-    const activePaths = this.watchPaths.map(p => p.path).join(', ');
+    const activePaths = this.watchPaths.map((p) => p.path).join(', ');
     console.log(`[FileWatcher] Starting manual polling on: ${activePaths}`);
 
     // Initial scan
@@ -71,7 +75,7 @@ export class FileWatcherService {
   getStatus() {
     return {
       isRunning: this.isRunning,
-      watchPaths: this.watchPaths.map(p => p.path),
+      watchPaths: this.watchPaths.map((p) => p.path),
       watchedFiles: this.fileStates.size,
     };
   }
@@ -81,12 +85,14 @@ export class FileWatcherService {
       try {
         const files = await watchConfig.scanFunc(watchConfig.path);
         console.log(`[FileWatcher] Found ${files.length} ${watchConfig.provider} session files`);
-        
+
         for (const filePath of files) {
           await this.initializeFile(filePath, watchConfig.provider);
         }
       } catch (error) {
-        console.log(`[FileWatcher] ${watchConfig.provider} path not accessible: ${watchConfig.path}`);
+        console.log(
+          `[FileWatcher] ${watchConfig.provider} path not accessible: ${watchConfig.path}`
+        );
       }
     }
     console.log(`[FileWatcher] Initialized ${this.fileStates.size} total files`);
@@ -96,13 +102,13 @@ export class FileWatcherService {
   private async scanClaudeDir(basePath: string): Promise<string[]> {
     const files: string[] = [];
     const projectDirs = await readdir(basePath.replace(/\//g, '\\'));
-    
+
     for (const dir of projectDirs) {
       const dirPath = join(basePath.replace(/\//g, '\\'), dir);
       try {
         const dirFiles = await readdir(dirPath);
         const jsonlFiles = dirFiles.filter((f) => f.endsWith('.jsonl'));
-        
+
         for (const file of jsonlFiles) {
           files.push(join(dirPath, file).replace(/\\/g, '/'));
         }
@@ -117,13 +123,13 @@ export class FileWatcherService {
   private async scanClawdbotDir(basePath: string): Promise<string[]> {
     const files: string[] = [];
     const agentDirs = await readdir(basePath.replace(/\//g, '\\'));
-    
+
     for (const agent of agentDirs) {
       const sessionsPath = join(basePath.replace(/\//g, '\\'), agent, 'sessions');
       try {
         const sessionFiles = await readdir(sessionsPath);
         const jsonlFiles = sessionFiles.filter((f) => f.endsWith('.jsonl'));
-        
+
         for (const file of jsonlFiles) {
           files.push(join(sessionsPath, file).replace(/\\/g, '/'));
         }
@@ -147,7 +153,9 @@ export class FileWatcherService {
         lastModified: stats.mtimeMs,
       });
 
-      console.log(`[FileWatcher] 📝 [${provider}] Tracking ${filePath.split('/').pop()} (${lines.length} lines)`);
+      console.log(
+        `[FileWatcher] 📝 [${provider}] Tracking ${filePath.split('/').pop()} (${lines.length} lines)`
+      );
 
       // Mark this session as seen so we can detect new sessions later
       const sessionId = this.extractSessionId(filePath, provider);
@@ -280,16 +288,16 @@ export class FileWatcherService {
     const filename = filePath.split('/').pop();
     if (!filename) return null;
     const baseId = filename.replace(/\.jsonl$/, '');
-    
+
     // Prefix with provider for clawdbot to differentiate
     if (provider === 'clawdbot') {
       // Extract agent name from path (e.g., .clawdbot/agents/main/sessions/xxx.jsonl -> main)
       const parts = filePath.split('/');
-      const agentsIdx = parts.findIndex(p => p === 'agents');
+      const agentsIdx = parts.findIndex((p) => p === 'agents');
       const agent = agentsIdx >= 0 && parts[agentsIdx + 1] ? parts[agentsIdx + 1] : 'unknown';
       return `clawdbot-${agent}-${baseId}`;
     }
-    
+
     return baseId;
   }
 }

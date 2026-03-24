@@ -214,7 +214,12 @@ export class ClawdbotProvider implements AIProvider {
           if (msg.role === 'assistant' && Array.isArray(msg.content)) {
             for (const item of msg.content) {
               if (typeof item === 'object' && item !== null && 'type' in item) {
-                const contentItem = item as { type: string; id?: string; name?: string; arguments?: Record<string, unknown> };
+                const contentItem = item as {
+                  type: string;
+                  id?: string;
+                  name?: string;
+                  arguments?: Record<string, unknown>;
+                };
                 if (contentItem.type === 'toolCall' && contentItem.id && contentItem.name) {
                   parsed.toolCalls.push({
                     id: contentItem.id,
@@ -238,7 +243,10 @@ export class ClawdbotProvider implements AIProvider {
   /**
    * Extract project info from session
    */
-  private extractProjectInfo(parsed: ParsedClawdbotSession, agent: string): { name: string; path: string } {
+  private extractProjectInfo(
+    parsed: ParsedClawdbotSession,
+    agent: string
+  ): { name: string; path: string } {
     const cwd = parsed.cwd || '';
     const projectName = cwd ? path.basename(cwd) : agent;
 
@@ -251,7 +259,11 @@ export class ClawdbotProvider implements AIProvider {
   /**
    * Ingest parsed session into database
    */
-  async ingestSession(filePath: string, parsed: ParsedClawdbotSession, agent: string): Promise<string> {
+  async ingestSession(
+    filePath: string,
+    parsed: ParsedClawdbotSession,
+    agent: string
+  ): Promise<string> {
     const projectInfo = this.extractProjectInfo(parsed, agent);
     const sessionId = `clawdbot-${agent}-${parsed.id}`;
 
@@ -471,7 +483,11 @@ export class ClawdbotProvider implements AIProvider {
         totalFiles: sessionFiles.length,
         currentStep: `Found ${sessionFiles.length} sessions`,
       });
-      syncStatusManager.addLog(trackingId, 'info', `Found ${sessionFiles.length} Clawdbot session files`);
+      syncStatusManager.addLog(
+        trackingId,
+        'info',
+        `Found ${sessionFiles.length} Clawdbot session files`
+      );
 
       let processed = 0;
       let errors = 0;

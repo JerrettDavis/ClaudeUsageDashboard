@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { and, desc, eq, gte, lte } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
-import { messages, sessions, toolCalls } from '@/lib/db/schema';
+import { messages, providers, sessions, toolCalls } from '@/lib/db/schema';
 import type { ParsedSession, ParseJobData } from '@/lib/workers/parser.worker';
 import { createParserPool, type WorkerPool } from '@/lib/workers/pool';
 import type {
@@ -50,6 +50,19 @@ export class ClaudeProvider implements AIProvider {
     if (!fs.existsSync(this.configPath)) {
       throw new Error(`Claude config directory not found: ${this.configPath}`);
     }
+
+    // Upsert provider record so FK constraints are satisfied when ingesting sessions
+    await db
+      .insert(providers)
+      .values({
+        id: this.id,
+        name: this.name,
+        configPath: this.configPath,
+        installed: true,
+        costPerInputToken: 0.000003,
+        costPerOutputToken: 0.000015,
+      })
+      .onConflictDoNothing();
 
     console.log(`✓ Claude provider initialized (${this.configPath})`);
   }
