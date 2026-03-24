@@ -4,7 +4,13 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { formatMessageAsTerminal } from '@/lib/services/message-formatter';
 
 async function findSessionFile(sessionId: string): Promise<string | null> {
-  const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+  // The /*turbopackIgnore: true*/ comments on the env var reads prevent
+  // Turbopack's NFT from tracing these runtime-only home-directory paths
+  // back to the project root during the build.
+  const homeDir =
+    (/*turbopackIgnore: true*/ process.env.HOME) ||
+    (/*turbopackIgnore: true*/ process.env.USERPROFILE) ||
+    '';
 
   // Search locations: Claude projects + Clawdbot agents
   const searchPaths: Array<{ base: string; pattern: 'flat' | 'nested' }> = [
