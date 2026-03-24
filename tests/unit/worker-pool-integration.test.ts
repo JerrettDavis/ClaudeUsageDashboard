@@ -107,4 +107,44 @@ describe('WorkerPool', () => {
 
     await pool.terminate();
   }, 10000);
+
+  it('should terminate workers cleanly and cover _terminating branch', async () => {
+    const pool = new WorkerPool({
+      workerPath: 'lib/workers/parser.worker.mjs',
+      poolSize: 2,
+    });
+
+    // Verify pool starts with correct size
+    expect(pool.getStats().totalWorkers).toBe(2);
+    expect(pool.getStats().availableWorkers).toBe(2);
+
+    // Terminate — this sets _terminating = true and calls worker.terminate()
+    // which causes workers to exit with non-zero codes, exercising the
+    // _terminating branch in the exit event handler
+    await pool.terminate();
+
+    // After terminate(), pool should be empty
+    expect(pool.getStats().totalWorkers).toBe(0);
+    expect(pool.getStats().availableWorkers).toBe(0);
+    expect(pool.getStats().activeJobs).toBe(0);
+    expect(pool.getStats().queuedJobs).toBe(0);
+  }, 15000);
+
+  it('should handle termination of idle workers without errors', async () => {
+    // Create a pool and immediately terminate it without submitting any jobs.
+    // This exercises the terminate() path including the _terminating flag and
+    // the exit event handler's _terminating branch for idle (non-erroring) workers.
+    const pool = new WorkerPool({
+      workerPath: 'lib/workers/parser.worker.mjs',
+      poolSize: 3,
+    });
+
+    expect(pool.getStats().totalWorkers).toBe(3);
+
+    await pool.terminate();
+
+    expect(pool.getStats().totalWorkers).toBe(0);
+    expect(pool.getStats().availableWorkers).toBe(0);
+    expect(pool.getStats().queuedJobs).toBe(0);
+  }, 15000);
 });
