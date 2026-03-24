@@ -22,7 +22,7 @@ describe('WorkerPool', () => {
     }
   });
 
-  it('should create worker pool with specified size', () => {
+  it('should create worker pool with specified size', async () => {
     const pool = new WorkerPool({
       workerPath: 'lib/workers/parser.worker.mjs',
       poolSize: 2,
@@ -31,7 +31,7 @@ describe('WorkerPool', () => {
     expect(pool.getStats().totalWorkers).toBe(2);
     expect(pool.getStats().availableWorkers).toBe(2);
 
-    pool.terminate();
+    await pool.terminate();
   });
 
   it('should execute job and return result', async () => {

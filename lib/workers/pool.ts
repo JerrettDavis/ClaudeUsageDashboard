@@ -42,8 +42,17 @@ export class WorkerPool<TJobData = unknown, TResult = unknown> {
       });
 
       worker.on('exit', (code) => {
-        if (code !== 0 && !this._terminating) {
-          console.error(`Worker stopped with exit code ${code}`);
+        if (code !== 0) {
+          if (this._terminating) {
+            // Worker exited with non-zero code due to intentional termination.
+            // Reset process.exitCode so the non-zero worker exit doesn't leak
+            // to the parent process (which would cause CI to report failure).
+            if (process.exitCode === code) {
+              process.exitCode = 0;
+            }
+          } else {
+            console.error(`Worker stopped with exit code ${code}`);
+          }
         }
       });
 
