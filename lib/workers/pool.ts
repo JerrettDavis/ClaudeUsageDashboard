@@ -29,9 +29,10 @@ export class WorkerPool<TJobData = unknown, TResult = unknown> {
   }
 
   private initializeWorkers() {
-    // Resolve the worker script path relative to this file's directory so that
-    // Turbopack can statically determine the referenced file during NFT tracing
-    // (unlike path.resolve(process.cwd(), ...) which sweeps the entire project).
+    // Resolve the worker script path relative to this file's directory using
+    // import.meta.url. This avoids Turbopack NFT tracing the entire project
+    // (which would happen with process.cwd()). Callers should pass just the
+    // filename (e.g., 'parser.worker.mjs'), not a full path.
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
     const workerPath = path.resolve(__dirname, this.config.workerPath);
