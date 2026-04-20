@@ -34,8 +34,7 @@ export class WorkerPool<TJobData = unknown, TResult = unknown> {
     const workerPath = path.resolve(process.cwd(), this.config.workerPath);
 
     for (let i = 0; i < this.config.poolSize; i++) {
-      // turbopackIgnore: true
-      const worker = new Worker(workerPath);
+      const worker = new Worker(/* turbopackIgnore: true */ workerPath);
 
       worker.on('message', (result: WorkerResult<TResult>) => {
         this.handleWorkerMessage(worker, result);
