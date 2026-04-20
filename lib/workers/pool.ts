@@ -29,13 +29,14 @@ export class WorkerPool<TJobData = unknown, TResult = unknown> {
   }
 
   private initializeWorkers() {
-    // Resolve the worker script path relative to this file's directory using
-    // import.meta.url. This avoids Turbopack NFT tracing the entire project
-    // (which would happen with process.cwd()). Callers should pass just the
-    // filename (e.g., 'parser.worker.mjs'), not a full path.
+    // Resolve the worker path relative to this file using import.meta.url.
+    // This avoids Turbopack NFT tracing the whole project (which process.cwd()
+    // would trigger). Only the basename is used so callers can pass either a
+    // plain filename ('parser.worker.mjs') or a project-relative path
+    // ('lib/workers/parser.worker.mjs') — both resolve to the same file here.
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
-    const workerPath = path.resolve(__dirname, this.config.workerPath);
+    const workerPath = path.resolve(__dirname, path.basename(this.config.workerPath));
 
     for (let i = 0; i < this.config.poolSize; i++) {
       const worker = new Worker(workerPath);
@@ -148,7 +149,7 @@ export class WorkerPool<TJobData = unknown, TResult = unknown> {
  */
 export function createParserPool(poolSize = 4) {
   return new WorkerPool({
-    workerPath: 'parser.worker.mjs',
+    workerPath: 'lib/workers/parser.worker.mjs',
     poolSize,
   });
 }
