@@ -9,7 +9,12 @@ const result =
   process.platform === 'win32'
     ? spawnSync(
         'cmd.exe',
-        ['/d', '/s', '/c', 'npm exec -- playwright test tests/e2e/screenshots.spec.ts --project=chromium'],
+        [
+          '/d',
+          '/s',
+          '/c',
+          'npm exec -- playwright test tests/e2e/screenshots.spec.ts --project=chromium',
+        ],
         {
           stdio: 'inherit',
           env,
