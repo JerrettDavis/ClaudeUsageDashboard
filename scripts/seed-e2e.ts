@@ -274,8 +274,7 @@ async function resetEnvironment() {
   await fs.mkdir(e2eHomeDir, { recursive: true });
 
   process.env.DATABASE_URL = databasePath;
-  process.env.HOME = e2eHomeDir;
-  process.env.USERPROFILE = e2eHomeDir;
+  process.env.CLAUDE_USAGE_DASHBOARD_HOME = e2eHomeDir;
 }
 
 async function writeHistoryFiles() {

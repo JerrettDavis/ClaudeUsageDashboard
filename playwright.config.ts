@@ -6,8 +6,7 @@ const e2eHomeDir = path.join(process.cwd(), 'data', 'e2e-home');
 const runAllBrowsers = process.env.PLAYWRIGHT_ALL_BROWSERS === '1';
 
 process.env.DATABASE_URL = databasePath;
-process.env.HOME = e2eHomeDir;
-process.env.USERPROFILE = e2eHomeDir;
+process.env.CLAUDE_USAGE_DASHBOARD_HOME = e2eHomeDir;
 process.env.NEXT_TELEMETRY_DISABLED = '1';
 
 export default defineConfig({
@@ -38,8 +37,7 @@ export default defineConfig({
     env: {
       ...process.env,
       DATABASE_URL: databasePath,
-      HOME: e2eHomeDir,
-      USERPROFILE: e2eHomeDir,
+      CLAUDE_USAGE_DASHBOARD_HOME: e2eHomeDir,
       NEXT_TELEMETRY_DISABLED: '1',
     },
   },
