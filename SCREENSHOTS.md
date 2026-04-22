@@ -1,21 +1,31 @@
 # Screenshots
 
-## Tiling Window Manager
-![Tiling Monitor](screenshots/tiling-monitor.png)
-*Monitor multiple AI sessions simultaneously with real-time updates*
+The current product screenshots are generated from the seeded Playwright environment with:
 
-## Session Details
-![Session Details](screenshots/session-details.png)
-*Detailed statistics including tokens, cost, duration, and message count*
+```bash
+npm run screenshots
+```
 
 ## Dashboard Overview
-![Dashboard](screenshots/dashboard.png)
-*Central hub for all your AI usage analytics*
+![Dashboard overview](public/screenshots/dashboard-overview.png)
+*System metrics, quick actions, and recent activity on the main dashboard*
 
-## Live Event Stream
-![Live Logs](screenshots/live-logs.png)
-*Real-time event streaming with color-coded messages*
+## Session Details
+![Session Details](public/screenshots/session-detail.png)
+*Detailed statistics, summary, files, folders, and message timeline for a single session*
+
+## Sessions List
+![Sessions List](public/screenshots/sessions-list.png)
+*Filterable inventory of active, completed, and error sessions*
+
+## Tiling Window Manager
+![Tiling Monitor](public/screenshots/tiling-monitor.png)
+*Monitor active Claude sessions in a terminal-style tiling layout*
+
+## Guides Hub
+![Guides Hub](public/screenshots/guides-hub.png)
+*Built-in onboarding page that links routes, workflows, and screenshots*
 
 ---
 
-*Note: Screenshots will be added in future releases*
+For workflow walkthroughs that use these images, open `/guides` in the app or the GitHub Pages companion site.

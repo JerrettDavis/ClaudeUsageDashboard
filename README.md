@@ -29,6 +29,11 @@ A comprehensive, real-time monitoring dashboard for AI coding assistant usage. T
 - Message history caching for instant reload
 - Chunked message loading (newest first)
 
+### 📚 **Guides & Documentation**
+- Built-in `/guides` hub with workflow-specific onboarding
+- Repeatable Playwright-driven product screenshots
+- Static GitHub Pages companion site for guides and visuals
+
 ## 🛠️ Tech Stack
 
 - **Frontend**: Next.js 16, React 19, TypeScript, shadcn/ui, TailwindCSS
@@ -99,9 +104,12 @@ Visit [http://localhost:3000](http://localhost:3000) to see the dashboard.
    ```
 
 3. **View the Tiling Monitor**
-   - Navigate to `/monitoring/sessions`
-   - Enable AUTO-OPEN to automatically track new sessions
-   - Click "Add Session" to manually add specific sessions
+    - Navigate to `/monitoring/sessions`
+    - Enable AUTO-OPEN to automatically track new sessions
+    - Click "Add Session" to manually add specific sessions
+4. **Open the Guides Hub**
+   - Navigate to `/guides`
+   - Review the screenshot-backed walkthroughs for the dashboard, sessions, and monitoring views
 
 ## 📁 Project Structure
 
@@ -196,8 +204,20 @@ Local SQLite database stores:
 # Run linter
 npm run lint
 
-# Run tests (when implemented)
-npm test
+# Run unit and integration tests with coverage
+npm run test:coverage -- --run
+
+# Install the Playwright browser once
+npx playwright install chromium
+
+# Run end-to-end tests
+npm run test:e2e
+
+# Refresh the committed product screenshots
+npm run screenshots
+
+# Build the GitHub Pages companion site
+npm run pages:build
 
 # Format code
 npm run format
@@ -205,6 +225,12 @@ npm run format
 # Build for production
 npm run build
 ```
+
+## 📖 User Guides
+
+- **In-app guides:** open `/guides`
+- **Static companion site:** `https://jerrettdavis.github.io/ClaudeUsageDashboard/`
+- **Screenshot reference:** see [`SCREENSHOTS.md`](./SCREENSHOTS.md)
 
 ## 🛡️ Security & Privacy
 
@@ -234,4 +260,3 @@ MIT License - See LICENSE file for details
 ---
 
 **Note**: This dashboard is designed to work with AI coding assistants that store session data locally in JSONL format. The initial implementation focuses on one specific AI assistant, but the architecture is extensible to support multiple providers.
-

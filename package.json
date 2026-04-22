@@ -14,12 +14,15 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx lib/db/seed.ts",
+    "e2e:seed": "tsx scripts/seed-e2e.ts",
     "sync": "tsx scripts/sync.ts",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "screenshots": "tsx scripts/run-screenshot-capture.ts",
+    "pages:build": "tsx scripts/build-pages-site.ts",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"
@@ -54,6 +57,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.14",
+    "@playwright/test": "^1.59.1",
     "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/cli": "^2.10.0",
     "@testing-library/jest-dom": "^6.9.1",
