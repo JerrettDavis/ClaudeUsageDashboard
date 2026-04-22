@@ -3,6 +3,7 @@
 import {
   Activity,
   BarChart3,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
   Settings,
@@ -17,6 +18,7 @@ import { ThemeToggle } from './theme-toggle';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Activity },
+  { name: 'Guides', href: '/guides', icon: BookOpen },
   { name: 'Live Monitor', href: '/monitoring', icon: Zap },
   { name: 'Tiling Monitor', href: '/monitoring/sessions', icon: Terminal },
   { name: 'Sessions', href: '/sessions', icon: Terminal },
@@ -73,6 +75,7 @@ export function Sidebar() {
 
       <div className="border-t border-zinc-800 p-3">
         <button
+          type="button"
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="w-full flex items-center justify-center rounded p-2 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300 transition-colors"
         >

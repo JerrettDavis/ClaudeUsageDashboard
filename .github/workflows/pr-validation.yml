@@ -55,6 +55,16 @@ jobs:
           echo "status=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
         continue-on-error: true
 
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright e2e suite
+        id: e2e
+        run: |
+          npm run test:e2e 2>&1 | tee e2e-output.txt
+          echo "status=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
       - name: Build application
         id: build
         run: |
@@ -63,6 +73,13 @@ jobs:
         continue-on-error: true
         env:
           NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Build Pages companion
+        id: pages
+        run: |
+          npm run pages:build 2>&1 | tee pages-output.txt
+          echo "status=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+        continue-on-error: true
 
       - name: Generate coverage report
         id: coverage
@@ -92,7 +109,9 @@ jobs:
             const lintStatus = '${{ steps.lint.outcome }}' === 'success' ? '✅' : '❌';
             const typecheckStatus = '${{ steps.typecheck.outcome }}' === 'success' ? '✅' : '❌';
             const testStatus = '${{ steps.test.outcome }}' === 'success' ? '✅' : '❌';
+            const e2eStatus = '${{ steps.e2e.outcome }}' === 'success' ? '✅' : '❌';
             const buildStatus = '${{ steps.build.outcome }}' === 'success' ? '✅' : '❌';
+            const pagesStatus = '${{ steps.pages.outcome }}' === 'success' ? '✅' : '❌';
             
             const coverageLines = '${{ steps.coverage.outputs.lines }}';
             const coverageBranches = '${{ steps.coverage.outputs.branches }}';
@@ -102,7 +121,9 @@ jobs:
             const allPassed = lintStatus === '✅' && 
                               typecheckStatus === '✅' && 
                               testStatus === '✅' && 
-                              buildStatus === '✅';
+                              e2eStatus === '✅' &&
+                              buildStatus === '✅' &&
+                              pagesStatus === '✅';
             
             const headerEmoji = allPassed ? '🎉' : '⚠️';
             const headerText = allPassed ? 'All checks passed!' : 'Some checks need attention';
@@ -113,8 +134,10 @@ jobs:
             |-------|--------|
             | Lint (Biome) | ${lintStatus} |
             | Type Check | ${typecheckStatus} |
-            | Tests | ${testStatus} |
+            | Unit + Integration Tests | ${testStatus} |
+            | E2E (Playwright) | ${e2eStatus} |
             | Build | ${buildStatus} |
+            | Pages Companion | ${pagesStatus} |
             
             ### 📊 Coverage Report
             
@@ -165,19 +188,33 @@ jobs:
           flags: pr-validation
           fail_ci_if_error: false
 
+      - name: Upload Playwright report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-pr-${{ github.event.pull_request.number }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
       - name: Fail if any check failed
         if: always()
         run: |
           if [[ "${{ steps.lint.outcome }}" != "success" ]] || \
              [[ "${{ steps.typecheck.outcome }}" != "success" ]] || \
              [[ "${{ steps.test.outcome }}" != "success" ]] || \
-             [[ "${{ steps.build.outcome }}" != "success" ]]; then
+             [[ "${{ steps.e2e.outcome }}" != "success" ]] || \
+             [[ "${{ steps.build.outcome }}" != "success" ]] || \
+             [[ "${{ steps.pages.outcome }}" != "success" ]]; then
             echo "❌ One or more validation checks failed"
             echo ""
             echo "Lint: ${{ steps.lint.outcome }}"
             echo "Type Check: ${{ steps.typecheck.outcome }}"
             echo "Tests: ${{ steps.test.outcome }}"
+            echo "E2E: ${{ steps.e2e.outcome }}"
             echo "Build: ${{ steps.build.outcome }}"
+            echo "Pages: ${{ steps.pages.outcome }}"
             exit 1
           fi
           echo "✅ All validation checks passed!"

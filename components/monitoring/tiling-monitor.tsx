@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useEventSource } from '@/lib/hooks/use-event-source';
+import { trpc } from '@/lib/trpc/provider';
 import { cn } from '@/lib/utils';
 import { SessionPickerModal } from './session-picker-modal';
 
@@ -412,6 +413,25 @@ export function TilingMonitor() {
   const [showPicker, setShowPicker] = useState(false);
   const [autoOpen, setAutoOpen] = useState(true); // Auto-open enabled by default
   const [autoClose, setAutoClose] = useState(false);
+  const [didBootstrapSessions, setDidBootstrapSessions] = useState(false);
+  const { data: activeSessions } = trpc.sessions.list.useQuery({
+    status: 'active',
+    limit: 9,
+  });
+
+  useEffect(() => {
+    if (!activeSessions?.length) {
+      return;
+    }
+
+    const activeSessionIds = activeSessions.map((session) => session.id);
+    setAvailableSessions((prev) => Array.from(new Set([...prev, ...activeSessionIds])));
+
+    if (autoOpen && !didBootstrapSessions) {
+      setSessions((prev) => Array.from(new Set([...prev, ...activeSessionIds])));
+      setDidBootstrapSessions(true);
+    }
+  }, [activeSessions, autoOpen, didBootstrapSessions]);
 
   // Listen for new sessions and auto-add/remove
   useEventSource('/api/events/stream', {

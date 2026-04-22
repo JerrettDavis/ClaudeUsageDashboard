@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEventSource } from '@/lib/hooks/use-event-source';
+import { trpc } from '@/lib/trpc/provider';
 import { cn } from '@/lib/utils';
 
 interface Session {
@@ -38,6 +39,32 @@ export function SessionPickerModal({
 }: SessionPickerModalProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [_loading, setLoading] = useState(false);
+  const { data: knownSessions } = trpc.sessions.list.useQuery({ limit: 20 }, { enabled: open });
+
+  useEffect(() => {
+    if (!knownSessions?.length) {
+      return;
+    }
+
+    setSessions((prev) => {
+      const nextSessions = new Map(prev.map((session) => [session.id, session]));
+
+      for (const session of knownSessions) {
+        nextSessions.set(session.id, {
+          id: session.id,
+          projectName: session.projectName,
+          status: session.status,
+          messageCount: session.messageCount || 0,
+          lastActivity: session.lastActivity ? new Date(session.lastActivity) : undefined,
+          startTime: new Date(session.startTime),
+        });
+      }
+
+      return Array.from(nextSessions.values()).sort(
+        (left, right) => right.startTime.getTime() - left.startTime.getTime()
+      );
+    });
+  }, [knownSessions]);
 
   // Listen to event stream for active sessions
   useEventSource('/api/events/stream', {
@@ -102,7 +129,8 @@ export function SessionPickerModal({
             SELECT SESSION
           </DialogTitle>
           <DialogDescription className="text-zinc-500">
-            Choose a Claude session to monitor in real-time
+            Choose a Claude session to monitor in real-time or preload from the latest database
+            state
           </DialogDescription>
         </DialogHeader>
 
@@ -124,6 +152,7 @@ export function SessionPickerModal({
                 .filter((s) => !excludeIds.includes(s.id))
                 .map((session) => (
                   <button
+                    type="button"
                     key={session.id}
                     onClick={() => handleSelect(session.id)}
                     className={cn(
