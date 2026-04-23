@@ -1,5 +1,18 @@
 # Changelog
 
+## [4.0.1](https://github.com/JerrettDavis/ClaudeUsageDashboard/compare/v4.0.0...v4.0.1) (2026-04-23)
+
+
+### Bug Fixes
+
+* correct doubled worker path and lint formatting ([d108b49](https://github.com/JerrettDavis/ClaudeUsageDashboard/commit/d108b4976a52221423c09af36ba118fe8127aac3))
+* resolve Turbopack NFT tracing error for session history route ([293981f](https://github.com/JerrettDavis/ClaudeUsageDashboard/commit/293981f35e92a51b61cbe0f141c8cb4c62727ed9))
+
+
+### Reverts
+
+* pin next to 16.1.6 (16.2.1 Turbopack NFT incompatible) ([aeea9a9](https://github.com/JerrettDavis/ClaudeUsageDashboard/commit/aeea9a9c65e760951aa3b06491619fb6d7184887))
+
 ## [4.0.0](https://github.com/JerrettDavis/ClaudeUsageDashboard/compare/v3.0.2...v4.0.0) (2026-03-24)
 
 
