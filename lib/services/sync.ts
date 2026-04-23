@@ -38,7 +38,7 @@ export class SyncService {
       await provider.initialize();
 
       // Perform full sync (for now - incremental coming later)
-      const result = await (provider as any).fullSync?.();
+      const result = await provider.fullSync?.();
 
       if (!result) {
         throw new Error('Provider does not support fullSync');

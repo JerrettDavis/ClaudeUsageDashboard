@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useEventSource } from '@/lib/hooks/use-event-source';
+import type { DashboardEvent } from '@/lib/services/event-bus';
 import { cn } from '@/lib/utils';
 
 export function LiveLogsPanel() {
-  const [events, setEvents] = useState<any[]>([]);
-  const { isConnected, lastEvent } = useEventSource('/api/events/stream', {
+  const [events, setEvents] = useState<DashboardEvent[]>([]);
+  const { isConnected } = useEventSource('/api/events/stream', {
     onEvent: (event) => {
       // Filter out noisy events
       if (event.type === 'ping' || event.type === 'connected' || event.type === 'status') {
@@ -81,8 +82,11 @@ export function LiveLogsPanel() {
             )}
           </div>
         ) : (
-          events.map((event, idx) => (
-            <div key={idx} className="flex gap-2 hover:bg-zinc-900/50 px-2 py-1 rounded">
+          events.map((event) => (
+            <div
+              key={`${event.type}-${event.timestamp}-${'sessionId' in event ? event.sessionId : ''}-${'pid' in event ? event.pid : ''}`}
+              className="flex gap-2 hover:bg-zinc-900/50 px-2 py-1 rounded"
+            >
               <span className="text-zinc-600 shrink-0">
                 {new Date(event.timestamp).toLocaleTimeString()}
               </span>
@@ -104,14 +108,14 @@ export function LiveLogsPanel() {
                 {event.type === 'session:update' && `Session updated: ${event.sessionId}`}
                 {event.type === 'message:new' && event.terminalOutput && (
                   <div className="space-y-0.5 font-mono text-xs pl-4">
-                    {event.terminalOutput.map((line: string, idx: number) => {
+                    {event.terminalOutput.map((line: string) => {
                       const isUser = line.startsWith('❯');
                       const isAssistant = line.startsWith('●');
                       const isContinuation = line.startsWith('⎿');
 
                       return (
                         <div
-                          key={idx}
+                          key={`${event.timestamp}-${line}`}
                           className={cn(
                             isUser && 'text-cyan-300',
                             isAssistant && 'text-emerald-300',
@@ -132,7 +136,8 @@ export function LiveLogsPanel() {
                   'session:new',
                   'session:update',
                   'message:new',
-                ].includes(event.type) && JSON.stringify(event.data || event, null, 0)}
+                ].includes(event.type) &&
+                  JSON.stringify(('data' in event ? event.data : event) || event, null, 0)}
               </span>
             </div>
           ))

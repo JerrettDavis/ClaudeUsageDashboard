@@ -34,7 +34,8 @@ export function Sidebar() {
   const isExpanded = !isCollapsed || isHovered;
 
   return (
-    <div
+    <aside
+      aria-label="Sidebar navigation"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
@@ -88,6 +89,6 @@ export function Sidebar() {
           </div>
         )}
       </div>
-    </div>
+    </aside>
   );
 }

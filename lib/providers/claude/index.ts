@@ -210,6 +210,7 @@ export class ClaudeProvider implements AIProvider {
     if (existing.length > 0) {
       // Update existing session
       await db.update(sessions).set(sessionData).where(eq(sessions.id, sessionId));
+      await db.delete(messages).where(eq(messages.sessionId, sessionId));
     } else {
       // Insert new session
       await db.insert(sessions).values({
@@ -236,13 +237,7 @@ export class ClaudeProvider implements AIProvider {
           tokens: msg.tokens || 0,
         }));
 
-        // Insert batch, ignore conflicts
-        try {
-          await db.insert(messages).values(messageValues);
-        } catch (_err) {
-          // Ignore duplicate errors
-          console.warn(`Some messages already exist for session ${sessionId}`);
-        }
+        await db.insert(messages).values(messageValues);
       }
     }
 
@@ -258,11 +253,7 @@ export class ClaudeProvider implements AIProvider {
           timestamp: new Date(tool.timestamp),
         }));
 
-        try {
-          await db.insert(toolCalls).values(toolValues);
-        } catch (_err) {
-          // Ignore duplicate errors
-        }
+        await db.insert(toolCalls).values(toolValues);
       }
     }
 
@@ -490,9 +481,13 @@ export class ClaudeProvider implements AIProvider {
               `Processed ${processed}/${sessionFiles.length} sessions`
             );
           }
-        } catch (error: any) {
+        } catch (error) {
           console.error(`Error processing ${filePath}:`, error);
-          syncStatusManager.addError(trackingId, fileName, error.message);
+          syncStatusManager.addError(
+            trackingId,
+            fileName,
+            error instanceof Error ? error.message : String(error)
+          );
           errors++;
 
           syncStatusManager.updateSync(trackingId, {
@@ -512,8 +507,12 @@ export class ClaudeProvider implements AIProvider {
       }
 
       return { processed, errors };
-    } catch (error: any) {
-      syncStatusManager.addLog(trackingId, 'error', `Sync failed: ${error.message}`);
+    } catch (error) {
+      syncStatusManager.addLog(
+        trackingId,
+        'error',
+        `Sync failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       if (!syncId) {
         syncStatusManager.completeSync(trackingId, 'error');
       }
@@ -530,20 +529,3 @@ export class ClaudeProvider implements AIProvider {
 
 // Export singleton instance
 export const claudeProvider = new ClaudeProvider();
-
-// Types for worker
-interface ParsedMessage {
-  uuid: string;
-  parentUuid?: string;
-  sessionId: string;
-  type: 'user' | 'assistant';
-  timestamp: string;
-  content: unknown;
-  tokens?: number;
-  toolCalls?: Array<{
-    id: string;
-    name: string;
-    input: Record<string, unknown>;
-    timestamp: string;
-  }>;
-}

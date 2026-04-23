@@ -16,6 +16,7 @@ export function TopBar({ onCommandOpen }: { onCommandOpen: () => void }) {
       <div className="flex h-14 items-center gap-4 px-4">
         {/* Command Palette Trigger */}
         <button
+          type="button"
           onClick={onCommandOpen}
           className="flex flex-1 max-w-md items-center gap-2 rounded border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-500 hover:border-cyan-500/30 hover:text-zinc-400 transition-colors"
         >

@@ -18,74 +18,81 @@ interface ClawdbotProviderState {
   watchers: Set<(event: SessionEvent) => void>;
 }
 
-const sessionFileContents = [
-  JSON.stringify({
-    type: 'session',
-    id: 'test-session-001',
-    cwd: 'C:\\projects\\demo-app',
-    timestamp: '2026-01-01T00:00:00.000Z',
-  }),
-  JSON.stringify({
-    type: 'message',
-    id: 'msg-user',
-    timestamp: '2026-01-01T00:00:01.000Z',
-    message: {
-      role: 'user',
-      content: 'Open the README',
-      usage: {
-        input: 10,
-        output: 0,
-        totalTokens: 10,
-      },
-    },
-  }),
-  JSON.stringify({
-    type: 'message',
-    id: 'msg-assistant',
-    parentId: 'msg-user',
-    timestamp: '2026-01-01T00:00:02.000Z',
-    message: {
-      role: 'assistant',
-      content: [
-        { type: 'text', text: 'Reading the file now.' },
-        {
-          type: 'toolCall',
-          id: 'tool-1',
-          name: 'readFile',
-          arguments: { path: 'README.md' },
-        },
-      ],
-      usage: {
-        input: 5,
-        output: 15,
-        totalTokens: 20,
-        cost: {
-          input: 0.01,
-          output: 0.02,
-          total: 0.03,
+function createSessionFileContents(sessionId: string) {
+  const userMessageId = `${sessionId}-msg-user`;
+  const assistantMessageId = `${sessionId}-msg-assistant`;
+  const toolMessageId = `${sessionId}-msg-tool`;
+  const toolCallId = `${sessionId}-tool-1`;
+
+  return [
+    JSON.stringify({
+      type: 'session',
+      id: sessionId,
+      cwd: 'C:\\projects\\demo-app',
+      timestamp: '2026-01-01T00:00:00.000Z',
+    }),
+    JSON.stringify({
+      type: 'message',
+      id: userMessageId,
+      timestamp: '2026-01-01T00:00:01.000Z',
+      message: {
+        role: 'user',
+        content: 'Open the README',
+        usage: {
+          input: 10,
+          output: 0,
+          totalTokens: 10,
         },
       },
-      provider: 'openclaw',
-      model: 'gpt-4o-mini',
-    },
-  }),
-  'this is not valid json',
-  JSON.stringify({
-    type: 'message',
-    id: 'msg-tool',
-    parentId: 'msg-assistant',
-    timestamp: '2026-01-01T00:00:03.000Z',
-    message: {
-      role: 'toolResult',
-      content: { ok: true, file: 'README.md' },
-      usage: {
-        input: 0,
-        output: 1,
-        totalTokens: 1,
+    }),
+    JSON.stringify({
+      type: 'message',
+      id: assistantMessageId,
+      parentId: userMessageId,
+      timestamp: '2026-01-01T00:00:02.000Z',
+      message: {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Reading the file now.' },
+          {
+            type: 'toolCall',
+            id: toolCallId,
+            name: 'readFile',
+            arguments: { path: 'README.md' },
+          },
+        ],
+        usage: {
+          input: 5,
+          output: 15,
+          totalTokens: 20,
+          cost: {
+            input: 0.01,
+            output: 0.02,
+            total: 0.03,
+          },
+        },
+        provider: 'openclaw',
+        model: 'gpt-4o-mini',
       },
-    },
-  }),
-].join('\n');
+    }),
+    'this is not valid json',
+    JSON.stringify({
+      type: 'message',
+      id: toolMessageId,
+      parentId: assistantMessageId,
+      timestamp: '2026-01-01T00:00:03.000Z',
+      message: {
+        role: 'toolResult',
+        content: { ok: true, file: 'README.md' },
+        usage: {
+          input: 0,
+          output: 1,
+          totalTokens: 1,
+        },
+      },
+    }),
+  ].join('\n');
+}
 
 describe('ClawdbotProvider', () => {
   let tempRoot: string;
@@ -132,11 +139,11 @@ describe('ClawdbotProvider', () => {
     expect(parsed.cwd).toBe('C:\\projects\\demo-app');
     expect(parsed.messages).toHaveLength(3);
     expect(parsed.messages[0]).toMatchObject({
-      uuid: 'msg-user',
+      uuid: 'test-session-001-msg-user',
       type: 'user',
     });
     expect(parsed.messages[1]).toMatchObject({
-      uuid: 'msg-assistant',
+      uuid: 'test-session-001-msg-assistant',
       type: 'assistant',
       provider: 'openclaw',
       model: 'gpt-4o-mini',
@@ -144,8 +151,8 @@ describe('ClawdbotProvider', () => {
     });
     expect(parsed.toolCalls).toEqual([
       {
-        id: 'tool-1',
-        messageUuid: 'msg-assistant',
+        id: 'test-session-001-tool-1',
+        messageUuid: 'test-session-001-msg-assistant',
         name: 'readFile',
         input: { path: 'README.md' },
         timestamp: '2026-01-01T00:00:02.000Z',
@@ -214,7 +221,7 @@ describe('ClawdbotProvider', () => {
         ...parsed.messages,
         {
           uuid: 'msg-followup',
-          parentUuid: 'msg-tool',
+          parentUuid: 'test-session-001-msg-tool',
           type: 'assistant' as const,
           timestamp: '2026-01-01T00:00:04.000Z',
           content: 'Done',
@@ -325,7 +332,7 @@ function createSessionFile(configPath: string, agent: string, sessionId: string)
   fs.mkdirSync(sessionsDir, { recursive: true });
 
   const filePath = path.join(sessionsDir, `${sessionId}.jsonl`);
-  fs.writeFileSync(filePath, sessionFileContents);
+  fs.writeFileSync(filePath, createSessionFileContents(sessionId));
   return filePath;
 }
 

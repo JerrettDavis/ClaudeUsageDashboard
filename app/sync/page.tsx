@@ -123,8 +123,11 @@ export default function SyncStatusPage() {
                     {activeSync.logs
                       .slice(-20)
                       .reverse()
-                      .map((log, i) => (
-                        <div key={i} className="flex items-start gap-2">
+                      .map((log) => (
+                        <div
+                          key={`${log.timestamp}-${log.level}-${log.message}`}
+                          className="flex items-start gap-2"
+                        >
                           <span className="text-muted-foreground whitespace-nowrap">
                             {new Date(log.timestamp).toLocaleTimeString()}
                           </span>

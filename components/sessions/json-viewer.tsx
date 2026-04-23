@@ -8,9 +8,9 @@ interface JsonViewerProps {
   jsonlPath: string;
 }
 
-export function JsonViewer({ sessionId, jsonlPath }: JsonViewerProps) {
+export function JsonViewer({ jsonlPath }: JsonViewerProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [jsonlData, setJsonlData] = useState<any[]>([]);
+  const [jsonlData, setJsonlData] = useState<Array<Record<string, unknown>>>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const loadJsonl = async () => {
@@ -23,7 +23,13 @@ export function JsonViewer({ sessionId, jsonlPath }: JsonViewerProps) {
     try {
       // In a real implementation, you'd fetch the JSONL file
       // For now, we'll show a placeholder
-      setJsonlData([{ type: 'placeholder', message: 'JSONL viewer coming soon...' }]);
+      setJsonlData([
+        {
+          type: 'placeholder',
+          message: 'JSONL viewer coming soon...',
+          source: jsonlPath,
+        },
+      ]);
       setIsExpanded(true);
     } catch (error) {
       console.error('Failed to load JSONL:', error);
@@ -35,6 +41,7 @@ export function JsonViewer({ sessionId, jsonlPath }: JsonViewerProps) {
   return (
     <div className="border border-zinc-800 bg-zinc-900/50 rounded overflow-hidden">
       <button
+        type="button"
         onClick={loadJsonl}
         className="w-full flex items-center justify-between px-4 py-3 border-b border-zinc-800 bg-zinc-900 hover:bg-zinc-800/50 transition-colors"
       >

@@ -4,7 +4,31 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { WorkerPool } from '@/lib/workers/pool';
 
 interface ParseResult {
-  messages: Array<{ role: string; content: unknown }>;
+  metadata?: {
+    cwd?: string;
+    gitBranch?: string;
+    version?: string;
+  };
+  messages: Array<{
+    uuid?: string;
+    role?: string;
+    type?: string;
+    content: unknown;
+    toolCalls?: Array<{
+      id: string;
+      messageUuid: string;
+      name: string;
+      input: Record<string, unknown>;
+      timestamp: string;
+    }>;
+  }>;
+  toolCalls?: Array<{
+    id: string;
+    messageUuid: string;
+    name: string;
+    input: Record<string, unknown>;
+    timestamp: string;
+  }>;
 }
 
 describe('WorkerPool', () => {
@@ -12,7 +36,45 @@ describe('WorkerPool', () => {
 
   beforeEach(() => {
     testFile = path.join(__dirname, '../fixtures/pool-test.jsonl');
-    const testData = [{ type: 'user', content: 'Test', timestamp: '2024-01-01T00:00:00Z' }];
+    const testData = [
+      {
+        type: 'user',
+        uuid: 'msg-user',
+        sessionId: 'pool-session',
+        timestamp: '2024-01-01T00:00:00Z',
+        cwd: 'C:\\git\\ClaudeUsageDashboard',
+        gitBranch: 'master',
+        version: '2.1.117',
+        message: {
+          role: 'user',
+          content: 'Test',
+        },
+      },
+      {
+        type: 'assistant',
+        uuid: 'msg-assistant',
+        parentUuid: 'msg-user',
+        sessionId: 'pool-session',
+        timestamp: '2024-01-01T00:00:01Z',
+        message: {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool_use',
+              id: 'toolu_pool_001',
+              name: 'Edit',
+              input: {
+                path: 'README.md',
+              },
+            },
+            {
+              type: 'text',
+              text: 'Updated the README.',
+            },
+          ],
+        },
+      },
+    ];
     fs.writeFileSync(testFile, testData.map((d) => JSON.stringify(d)).join('\n'));
   });
 
@@ -51,6 +113,23 @@ describe('WorkerPool', () => {
     expect(result).toBeDefined();
     expect(result.messages).toBeDefined();
     expect(Array.isArray(result.messages)).toBe(true);
+    expect(result.metadata).toMatchObject({
+      cwd: 'C:\\git\\ClaudeUsageDashboard',
+      gitBranch: 'master',
+      version: '2.1.117',
+    });
+    expect(result.toolCalls).toEqual([
+      {
+        id: 'toolu_pool_001',
+        messageUuid: 'msg-assistant',
+        name: 'Edit',
+        input: {
+          path: 'README.md',
+        },
+        timestamp: '2024-01-01T00:00:01Z',
+      },
+    ]);
+    expect(result.messages[1]?.toolCalls).toEqual(result.toolCalls);
 
     await pool.terminate();
   }, 10000);

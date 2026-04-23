@@ -1,16 +1,13 @@
 'use client';
 
 import { Wifi, WifiOff } from 'lucide-react';
-import { useState } from 'react';
 import { useEventSource } from '@/lib/hooks/use-event-source';
 
 export function ConnectionStatus() {
-  const [_events, setEvents] = useState<any[]>([]);
   const { isConnected, lastEvent } = useEventSource('/api/events/stream', {
     onEvent: (event) => {
       if (event.type !== 'ping') {
         console.log('[ConnectionStatus] Event:', event);
-        setEvents((prev) => [...prev.slice(-9), event]); // Keep last 10 events
       }
     },
   });

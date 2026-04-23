@@ -18,7 +18,7 @@ import {
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { useEventSource } from '@/lib/hooks/use-event-source';
+import { useEventSource, type SSEEvent } from '@/lib/hooks/use-event-source';
 import { trpc } from '@/lib/trpc/provider';
 import { cn } from '@/lib/utils';
 import { SessionPickerModal } from './session-picker-modal';
@@ -41,6 +41,14 @@ interface SessionStats {
   estimatedCost: number;
   duration: string;
   startTime?: Date;
+}
+
+function isSessionScopedEvent(event: SSEEvent): event is Extract<SSEEvent, { sessionId: string }> {
+  return 'sessionId' in event && typeof event.sessionId === 'string';
+}
+
+function hasProjectData(data: unknown): data is { projectPath?: string; projectName?: string } {
+  return typeof data === 'object' && data !== null;
 }
 
 function SessionTerminal({ sessionId, onRemove, onMaximize }: SessionTerminalProps) {
@@ -192,15 +200,17 @@ function SessionTerminal({ sessionId, onRemove, onMaximize }: SessionTerminalPro
   useEventSource('/api/events/stream', {
     onEvent: (event) => {
       // Only show events for this session
-      if (event.sessionId !== sessionId) return;
+      if (!isSessionScopedEvent(event) || event.sessionId !== sessionId) return;
 
       if (event.type === 'message:new' && event.terminalOutput) {
+        const terminalOutput = event.terminalOutput;
+
         setMessages((prev) => {
           const newMessages = [
             ...prev,
             {
               time: new Date(event.timestamp).toLocaleTimeString(),
-              lines: event.terminalOutput,
+              lines: terminalOutput,
             },
           ];
 
@@ -215,17 +225,18 @@ function SessionTerminal({ sessionId, onRemove, onMaximize }: SessionTerminalPro
           ...prev,
           messageCount: prev.messageCount + 1,
           // Estimate tokens (rough approximation)
-          tokensInput: prev.tokensInput + Math.floor(event.terminalOutput.join('').length / 4),
-          tokensOutput: prev.tokensOutput + Math.floor(event.terminalOutput.join('').length / 4),
+          tokensInput: prev.tokensInput + Math.floor(terminalOutput.join('').length / 4),
+          tokensOutput: prev.tokensOutput + Math.floor(terminalOutput.join('').length / 4),
         }));
       }
 
       // Update session details from events
-      if (event.type === 'session:update' && event.data) {
+      if (event.type === 'session:update' && hasProjectData(event.data)) {
+        const projectData = event.data;
         setStats((prev) => ({
           ...prev,
-          projectPath: event.data.projectPath || prev.projectPath,
-          projectName: event.data.projectName || prev.projectName,
+          projectPath: projectData.projectPath || prev.projectPath,
+          projectName: projectData.projectName || prev.projectName,
         }));
       }
     },
@@ -371,18 +382,18 @@ function SessionTerminal({ sessionId, onRemove, onMaximize }: SessionTerminalPro
                   Waiting for activity...
                 </div>
               ) : (
-                messages.map((msg, idx) => (
-                  <div key={idx} className="space-y-1">
+                messages.map((msg) => (
+                  <div key={`${msg.time}-${msg.lines[0] ?? 'message'}`} className="space-y-1">
                     <div className="text-zinc-700 text-xs">{msg.time}</div>
                     <div className="space-y-0.5">
-                      {msg.lines.map((line, lineIdx) => {
+                      {msg.lines.map((line) => {
                         const isUser = line.startsWith('❯');
                         const isAssistant = line.startsWith('●');
                         const isContinuation = line.startsWith('⎿');
 
                         return (
                           <div
-                            key={lineIdx}
+                            key={`${msg.time}-${line}`}
                             className={cn(
                               'leading-relaxed',
                               isUser && 'text-cyan-300',
@@ -438,7 +449,7 @@ export function TilingMonitor() {
     onEvent: (event) => {
       // Track available sessions from any activity
       if (
-        event.sessionId &&
+        isSessionScopedEvent(event) &&
         (event.type === 'session:new' ||
           event.type === 'session:update' ||
           event.type === 'message:new')
@@ -454,7 +465,8 @@ export function TilingMonitor() {
       // Auto-open: add new sessions when they first appear OR when they send their first message
       if (
         autoOpen &&
-        (event.type === 'session:new' || (event.type === 'message:new' && event.sessionId))
+        isSessionScopedEvent(event) &&
+        (event.type === 'session:new' || event.type === 'message:new')
       ) {
         const sessionId = event.sessionId;
         if (sessionId) {
@@ -469,7 +481,7 @@ export function TilingMonitor() {
       }
 
       // Auto-close finished sessions
-      if (event.type === 'session:end' && autoClose) {
+      if (isSessionScopedEvent(event) && event.type === 'session:ended' && autoClose) {
         setSessions((prev) => prev.filter((id) => id !== event.sessionId));
         setAvailableSessions((prev) => prev.filter((id) => id !== event.sessionId));
         console.log(`[TilingMonitor] 🔴 Auto-closing session: ${event.sessionId}`);

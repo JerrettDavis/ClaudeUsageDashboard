@@ -233,7 +233,7 @@ export class ClawdbotProvider implements AIProvider {
             }
           }
         }
-      } catch (e) {
+      } catch (_e) {
         // Skip malformed lines
       }
     }
@@ -299,6 +299,7 @@ export class ClawdbotProvider implements AIProvider {
 
     if (existing.length > 0) {
       await db.update(sessions).set(sessionData).where(eq(sessions.id, sessionId));
+      await db.delete(messages).where(eq(messages.sessionId, sessionId));
     } else {
       await db.insert(sessions).values({
         id: sessionId,
@@ -325,11 +326,7 @@ export class ClawdbotProvider implements AIProvider {
           tokens: msg.tokens || 0,
         }));
 
-        try {
-          await db.insert(messages).values(messageValues);
-        } catch (_err) {
-          // Ignore duplicate errors
-        }
+        await db.insert(messages).values(messageValues);
       }
     }
 
@@ -345,11 +342,7 @@ export class ClawdbotProvider implements AIProvider {
           timestamp: new Date(tool.timestamp),
         }));
 
-        try {
-          await db.insert(toolCalls).values(toolValues);
-        } catch (_err) {
-          // Ignore duplicate errors
-        }
+        await db.insert(toolCalls).values(toolValues);
       }
     }
 
@@ -520,9 +513,13 @@ export class ClawdbotProvider implements AIProvider {
             processedFiles: processed,
             successCount: processed,
           });
-        } catch (error: any) {
+        } catch (error) {
           console.error(`Error processing ${filePath}:`, error);
-          syncStatusManager.addError(trackingId, fileName, error.message);
+          syncStatusManager.addError(
+            trackingId,
+            fileName,
+            error instanceof Error ? error.message : String(error)
+          );
           errors++;
 
           syncStatusManager.updateSync(trackingId, {
@@ -542,8 +539,12 @@ export class ClawdbotProvider implements AIProvider {
       }
 
       return { processed, errors };
-    } catch (error: any) {
-      syncStatusManager.addLog(trackingId, 'error', `Clawdbot sync failed: ${error.message}`);
+    } catch (error) {
+      syncStatusManager.addLog(
+        trackingId,
+        'error',
+        `Clawdbot sync failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       if (!syncId) {
         syncStatusManager.completeSync(trackingId, 'error');
       }

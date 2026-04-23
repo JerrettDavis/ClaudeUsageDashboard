@@ -89,7 +89,7 @@ export class FileWatcherService {
         for (const filePath of files) {
           await this.initializeFile(filePath, watchConfig.provider);
         }
-      } catch (error) {
+      } catch (_error) {
         console.log(
           `[FileWatcher] ${watchConfig.provider} path not accessible: ${watchConfig.path}`
         );
@@ -293,7 +293,7 @@ export class FileWatcherService {
     if (provider === 'clawdbot') {
       // Extract agent name from path (e.g., .clawdbot/agents/main/sessions/xxx.jsonl -> main)
       const parts = filePath.split('/');
-      const agentsIdx = parts.findIndex((p) => p === 'agents');
+      const agentsIdx = parts.indexOf('agents');
       const agent = agentsIdx >= 0 && parts[agentsIdx + 1] ? parts[agentsIdx + 1] : 'unknown';
       return `clawdbot-${agent}-${baseId}`;
     }

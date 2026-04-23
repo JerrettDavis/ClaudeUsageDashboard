@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events';
 export type SessionEvent = {
   type: 'session:new' | 'session:update' | 'session:ended';
   sessionId: string;
-  data: any;
+  data: unknown;
   timestamp: number;
 };
 
@@ -12,14 +12,14 @@ export type ProcessEvent = {
   pid: number;
   sessionId?: string;
   cwd?: string;
-  data: any;
+  data: unknown;
   timestamp: number;
 };
 
 export type MessageEvent = {
   type: 'message:new';
   sessionId: string;
-  message: any;
+  message: unknown;
   terminalOutput?: string[];
   timestamp: number;
 };

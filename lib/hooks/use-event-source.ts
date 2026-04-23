@@ -1,11 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { DashboardEvent } from '@/lib/services/event-bus';
 
-interface SSEEvent {
-  type: string;
-  [key: string]: any;
-}
+export type SSEEvent =
+  | DashboardEvent
+  | { type: 'connected'; timestamp: number }
+  | { type: 'ping'; timestamp: number }
+  | { type: 'status'; fileWatcher: unknown; processMonitor: unknown; timestamp: number };
 
 interface UseEventSourceOptions {
   onEvent?: (event: SSEEvent) => void;

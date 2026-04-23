@@ -155,9 +155,9 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
                   </div>
                   <div className="max-h-[400px] overflow-y-auto">
                     <div className="p-2 space-y-0.5">
-                      {filesModified.map((file: string, idx: number) => (
+                      {filesModified.map((file: string) => (
                         <div
-                          key={idx}
+                          key={file}
                           className="text-xs text-zinc-400 font-mono hover:text-cyan-400 hover:bg-zinc-800/50 transition-colors py-1.5 px-2 rounded cursor-default truncate"
                           title={file}
                         >
@@ -183,9 +183,9 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
                   </div>
                   <div className="max-h-[300px] overflow-y-auto">
                     <div className="p-2 space-y-0.5">
-                      {foldersAccessed.map((folder: string, idx: number) => (
+                      {foldersAccessed.map((folder: string) => (
                         <div
-                          key={idx}
+                          key={folder}
                           className="text-xs text-zinc-400 font-mono hover:text-emerald-400 hover:bg-zinc-800/50 transition-colors py-1.5 px-2 rounded cursor-default truncate"
                           title={folder}
                         >

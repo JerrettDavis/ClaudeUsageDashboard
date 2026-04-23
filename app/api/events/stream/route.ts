@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server';
+import type { DashboardEvent } from '@/lib/services/event-bus';
 import { eventBus } from '@/lib/services/event-bus';
 import { fileWatcher } from '@/lib/services/file-watcher';
 import { processMonitor } from '@/lib/services/process-monitor';
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
       controller.enqueue(encoder.encode(statusMessage));
 
       // Listen to all events
-      const eventHandler = (event: any) => {
+      const eventHandler = (event: DashboardEvent) => {
         try {
           const message = `data: ${JSON.stringify(event)}\n\n`;
           controller.enqueue(encoder.encode(message));

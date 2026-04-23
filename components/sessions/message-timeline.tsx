@@ -4,6 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Bot, User, Wrench } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { trpc } from '@/lib/trpc/provider';
+import type { Message, MessageContent } from '@/types';
 
 interface MessageTimelineProps {
   sessionId: string;
@@ -28,21 +29,27 @@ export function MessageTimeline({ sessionId }: MessageTimelineProps) {
     );
   }
 
-  const parseContent = (content: string) => {
+  const parseContent = (content: Message['content']): MessageContent[] => {
     try {
-      const parsed = JSON.parse(content);
-      if (Array.isArray(parsed)) {
-        return parsed;
+      if (typeof content !== 'string') {
+        return content;
       }
-      return [{ type: 'text', text: parsed }];
+
+      const parsed = JSON.parse(content) as unknown;
+      if (Array.isArray(parsed)) {
+        return parsed as MessageContent[];
+      }
+      return [{ type: 'text', text: typeof parsed === 'string' ? parsed : JSON.stringify(parsed) }];
     } catch {
-      return [{ type: 'text', text: content }];
+      return [
+        { type: 'text', text: typeof content === 'string' ? content : JSON.stringify(content) },
+      ];
     }
   };
 
   return (
     <div className="space-y-6">
-      {session.messages.map((message: any) => {
+      {session.messages.map((message) => {
         const contentBlocks = parseContent(message.content);
         const isUser = message.role === 'user';
 
@@ -73,7 +80,7 @@ export function MessageTimeline({ sessionId }: MessageTimelineProps) {
                 <p className="text-xs text-zinc-600 font-mono">
                   {formatDistanceToNow(new Date(message.timestamp))} ago
                 </p>
-                {message.tokens > 0 && (
+                {(message.tokens || 0) > 0 && (
                   <Badge variant="outline" className="text-xs font-mono border-zinc-700">
                     {message.tokens} tokens
                   </Badge>
@@ -81,11 +88,15 @@ export function MessageTimeline({ sessionId }: MessageTimelineProps) {
               </div>
 
               <div className="space-y-3">
-                {contentBlocks.map((block: any, blockIndex: number) => {
+                {contentBlocks.map((block) => {
+                  const blockKey =
+                    block.id ||
+                    `${block.type}-${typeof block.text === 'string' ? block.text.slice(0, 40) : JSON.stringify(block.content ?? block.input ?? '')}`;
+
                   if (block.type === 'text') {
                     return (
                       <div
-                        key={blockIndex}
+                        key={blockKey}
                         className="border border-zinc-800 bg-zinc-900/30 rounded p-4"
                       >
                         <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">
@@ -98,7 +109,7 @@ export function MessageTimeline({ sessionId }: MessageTimelineProps) {
                   if (block.type === 'tool_use') {
                     return (
                       <div
-                        key={blockIndex}
+                        key={blockKey}
                         className="rounded border border-amber-500/40 bg-amber-500/5 p-4"
                       >
                         <div className="flex items-center gap-2 mb-3">
@@ -117,7 +128,7 @@ export function MessageTimeline({ sessionId }: MessageTimelineProps) {
                   if (block.type === 'tool_result') {
                     return (
                       <div
-                        key={blockIndex}
+                        key={blockKey}
                         className="rounded border border-emerald-500/40 bg-emerald-500/5 p-4"
                       >
                         <p className="text-xs font-semibold mb-2 font-mono text-emerald-400">

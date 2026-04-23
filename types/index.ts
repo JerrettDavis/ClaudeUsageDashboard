@@ -30,6 +30,7 @@ export interface AIProvider {
 
   // Session launching
   launchSession(config: LaunchConfig): Promise<ProcessHandle>;
+  fullSync?(syncId?: string): Promise<{ processed: number; errors: number }>;
 }
 
 // Session Types

@@ -84,8 +84,8 @@ export default function SessionsPage() {
           <CardContent>
             {isLoading ? (
               <div className="space-y-3">
-                {[...Array(5)].map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
+                {['session-1', 'session-2', 'session-3', 'session-4', 'session-5'].map((key) => (
+                  <Skeleton key={key} className="h-16 w-full" />
                 ))}
               </div>
             ) : sessions && sessions.length > 0 ? (

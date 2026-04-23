@@ -15,6 +15,24 @@ interface SessionMessage {
   timestamp?: string;
 }
 
+type MessageType = SessionMessage['type'] | NonNullable<SessionMessage['message']>['role'];
+
+interface TextContentBlock {
+  type?: string;
+  text?: string;
+}
+
+interface ToolContentBlock extends Record<string, unknown> {
+  type?: string;
+  text?: string;
+  thinking?: string;
+  name?: string;
+  input?: Record<string, unknown>;
+  arguments?: Record<string, unknown>;
+  content?: string | Array<{ type: string; text?: string }>;
+  is_error?: boolean;
+}
+
 export function formatMessageAsTerminal(msg: SessionMessage): string[] {
   const lines: string[] = [];
 
@@ -24,9 +42,9 @@ export function formatMessageAsTerminal(msg: SessionMessage): string[] {
   // Determine the message type - handle both Claude and Clawdbot formats
   // Claude: type is 'user' or 'assistant'
   // Clawdbot: type is 'message', role is in message.role
-  let msgType = msg.type;
+  let msgType: MessageType = msg.type;
   if (msg.type === 'message' && msg.message?.role) {
-    msgType = msg.message.role as any;
+    msgType = msg.message.role;
   }
 
   // Get content - could be on msg directly or in msg.message
@@ -37,9 +55,7 @@ export function formatMessageAsTerminal(msg: SessionMessage): string[] {
     // Format user input with ❯ prompt
     // Handle content as array
     if (Array.isArray(content)) {
-      const textContent = (content as Array<{ type?: string; text?: string }>).find(
-        (c) => c && c.type === 'text'
-      );
+      const textContent = (content as TextContentBlock[]).find((c) => c && c.type === 'text');
       if (textContent?.text) {
         lines.push(`❯ ${textContent.text}`);
       }
@@ -47,8 +63,13 @@ export function formatMessageAsTerminal(msg: SessionMessage): string[] {
     // Handle content as string or object with text property
     else if (typeof content === 'string') {
       lines.push(`❯ ${content}`);
-    } else if ((content as any)?.text) {
-      lines.push(`❯ ${(content as any).text}`);
+    } else if (
+      typeof content === 'object' &&
+      content !== null &&
+      'text' in content &&
+      typeof content.text === 'string'
+    ) {
+      lines.push(`❯ ${content.text}`);
     }
     return lines;
   }
@@ -66,9 +87,7 @@ export function formatMessageAsTerminal(msg: SessionMessage): string[] {
   }
 
   if (msgType === 'assistant') {
-    const contentArray = (Array.isArray(content) ? content : [content]) as Array<
-      Record<string, any>
-    >;
+    const contentArray = (Array.isArray(content) ? content : [content]) as ToolContentBlock[];
 
     for (const item of contentArray) {
       if (!item) continue;

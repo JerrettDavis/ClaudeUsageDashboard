@@ -3,9 +3,9 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { initializeDatabase, db } = await import('@/lib/db/client');
     const { providers } = await import('@/lib/db/schema');
-    const os = await import('os');
-    const path = await import('path');
-    const fs = await import('fs');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const fs = await import('node:fs');
     const { eq } = await import('drizzle-orm');
 
     // Run migrations

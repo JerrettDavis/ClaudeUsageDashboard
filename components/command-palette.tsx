@@ -49,7 +49,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   return (
     <>
       {open && (
-        <div
+        <button
+          type="button"
+          aria-label="Close command palette"
           className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm"
           onClick={() => onOpenChange(false)}
         />
