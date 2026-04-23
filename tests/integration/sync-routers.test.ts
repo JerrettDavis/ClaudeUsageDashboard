@@ -65,9 +65,7 @@ describe('sync routers', () => {
       success: true,
       sessionsProcessed: 4,
     });
-    await expect(caller.sync.syncAll()).resolves.toEqual([
-      { providerId: 'claude', success: true },
-    ]);
+    await expect(caller.sync.syncAll()).resolves.toEqual([{ providerId: 'claude', success: true }]);
     await expect(caller.sync.checkInstallations()).resolves.toEqual([
       { providerId: 'claude', installed: true },
     ]);

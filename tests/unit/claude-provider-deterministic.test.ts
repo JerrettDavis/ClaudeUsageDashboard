@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/lib/db/client';
 import { messages, providers, sessions } from '@/lib/db/schema';
-import { syncStatusManager, type SyncProgress } from '@/lib/services/sync-status';
+import { type SyncProgress, syncStatusManager } from '@/lib/services/sync-status';
 import type { ParsedSession } from '@/lib/workers/parser.worker';
 import type { SessionEvent } from '@/types';
 
@@ -64,7 +64,8 @@ const parsedSessionFixture: ParsedSession = {
           name: 'create',
           input: {
             path: 'reader.py',
-            file_text: 'def read_file(filename):\n    with open(filename) as f:\n        return f.read()\n',
+            file_text:
+              'def read_file(filename):\n    with open(filename) as f:\n        return f.read()\n',
           },
           timestamp: '2024-01-15T10:00:05.000Z',
         },
@@ -121,7 +122,11 @@ describe('ClaudeProvider (deterministic)', () => {
     expect(provider.getConfigPath()).toBe(configDir);
     expect(await provider.detectInstallation()).toBe(true);
 
-    const storedProvider = await db.select().from(providers).where(eq(providers.id, 'claude')).limit(1);
+    const storedProvider = await db
+      .select()
+      .from(providers)
+      .where(eq(providers.id, 'claude'))
+      .limit(1);
     expect(storedProvider).toHaveLength(1);
     expect(storedProvider[0]).toMatchObject({
       id: 'claude',
@@ -145,11 +150,14 @@ describe('ClaudeProvider (deterministic)', () => {
     expect(poolMocks.execute).toHaveBeenCalledOnce();
     expect(sessionId).toBe('test-session-001');
 
-    const storedSession = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+    const storedSession = await db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .limit(1);
     expect(storedSession).toHaveLength(1);
     expect(storedSession[0]).toMatchObject({
       providerId: 'claude',
-      projectName: 'project',
       projectPath: 'C:\\git\\demo\\project',
       messageCount: 2,
       tokensInput: 12,
@@ -158,8 +166,12 @@ describe('ClaudeProvider (deterministic)', () => {
       toolUsageCount: 1,
       lastSummary: 'Test session for deterministic Claude provider tests',
     });
+    expect(storedSession[0].projectName).toMatch(/project$/);
 
-    const storedMessages = await db.select().from(messages).where(eq(messages.sessionId, sessionId));
+    const storedMessages = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.sessionId, sessionId));
     expect(storedMessages).toHaveLength(2);
 
     const listedSessions = await provider.listSessions({

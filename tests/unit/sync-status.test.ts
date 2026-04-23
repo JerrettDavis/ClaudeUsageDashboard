@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { syncStatusManager, type SyncProgress } from '@/lib/services/sync-status';
+import { type SyncProgress, syncStatusManager } from '@/lib/services/sync-status';
 
 interface SyncStatusManagerState {
   activeSyncs: Map<string, SyncProgress>;

@@ -152,8 +152,8 @@ export default function SyncStatusPage() {
                   <h3 className="text-sm font-medium">Errors ({activeSync.errors.length})</h3>
                   <ScrollArea className="h-32 rounded-lg border bg-red-50 dark:bg-red-900/10 p-3">
                     <div className="space-y-2 text-xs">
-                      {activeSync.errors.slice(-10).map((error, i) => (
-                        <div key={i} className="space-y-1">
+                      {activeSync.errors.slice(-10).map((error) => (
+                        <div key={`${error.file}-${error.error}`} className="space-y-1">
                           <p className="font-medium text-red-600">{error.file}</p>
                           <p className="text-muted-foreground">{error.error}</p>
                         </div>

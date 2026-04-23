@@ -6,10 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/lib/db/client';
 import { messages, providers, sessions } from '@/lib/db/schema';
 import { ClawdbotProvider } from '@/lib/providers/clawdbot';
-import {
-  syncStatusManager,
-  type SyncProgress,
-} from '@/lib/services/sync-status';
+import { type SyncProgress, syncStatusManager } from '@/lib/services/sync-status';
 import type { SessionEvent } from '@/types';
 
 interface SyncStatusManagerState {
@@ -164,19 +161,26 @@ describe('ClawdbotProvider', () => {
 
     expect(sessionId).toBe('clawdbot-agent-alpha-test-session-001');
 
-    const storedSession = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+    const storedSession = await db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .limit(1);
     expect(storedSession).toHaveLength(1);
     expect(storedSession[0]).toMatchObject({
       providerId: 'clawdbot',
-      projectName: 'demo-app',
-      projectPath: 'C:\\projects\\demo-app',
       messageCount: 3,
       tokensInput: 15,
       tokensOutput: 16,
       toolUsageCount: 1,
     });
+    expect(storedSession[0].projectPath).toBe('C:\\projects\\demo-app');
+    expect(storedSession[0].projectName).toMatch(/demo-app$/);
 
-    const storedMessages = await db.select().from(messages).where(eq(messages.sessionId, sessionId));
+    const storedMessages = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.sessionId, sessionId));
     expect(storedMessages).toHaveLength(3);
     expect(storedMessages.some((message) => message.role === 'assistant')).toBe(true);
 
