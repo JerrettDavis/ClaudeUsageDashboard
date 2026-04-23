@@ -18,7 +18,7 @@ import {
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { useEventSource, type SSEEvent } from '@/lib/hooks/use-event-source';
+import { type SSEEvent, useEventSource } from '@/lib/hooks/use-event-source';
 import { trpc } from '@/lib/trpc/provider';
 import { cn } from '@/lib/utils';
 import { SessionPickerModal } from './session-picker-modal';
