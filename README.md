@@ -210,6 +210,9 @@ Local SQLite database stores:
 # Run linter
 npm run lint
 
+# Run type checking
+npm run typecheck
+
 # Run unit and integration tests with coverage
 npm run test:coverage -- --run
 
@@ -230,6 +233,22 @@ npm run format
 
 # Build for production
 npm run build
+```
+
+## Git Hooks
+
+After `npm install`, repository-managed Git hooks are installed automatically.
+
+- `pre-commit` blocks commits when staged files fail Biome checks, contain merge conflict markers, or break the repo-wide TypeScript typecheck.
+- `commit-msg` enforces Conventional Commits via `commitlint`.
+
+Examples:
+
+```text
+feat: add sync activity heatmap
+fix: handle empty analytics trend data
+docs: refresh guides for pages site
+chore: tighten local hook checks
 ```
 
 ## 📖 User Guides

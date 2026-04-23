@@ -14,6 +14,7 @@ Thank you for your interest in contributing! This document provides guidelines a
    ```bash
    npm install
    ```
+   This also installs the repository Git hooks automatically.
 4. **Start development server**
    ```bash
    npm run dev
@@ -52,21 +53,28 @@ git checkout -b feature/your-feature-name
 ### 3. Test Your Changes
 ```bash
 npm run lint        # Check for linting errors
+npm run typecheck   # Check TypeScript types
 npm run build       # Ensure production build works
 ```
 
 ### 4. Commit Your Changes
 ```bash
 git add .
-git commit -m "Add: Brief description of your changes"
+git commit -m "feat: brief description of your changes"
 ```
 
-Use semantic commit messages:
-- `Add:` New features
-- `Fix:` Bug fixes
-- `Update:` Changes to existing features
-- `Refactor:` Code restructuring
-- `Docs:` Documentation changes
+The repo enforces Conventional Commits in `commit-msg` hooks. Common examples:
+- `feat:`
+- `fix:`
+- `docs:`
+- `refactor:`
+- `test:`
+- `chore:`
+
+The `pre-commit` hook also runs fast local safety checks:
+- Biome only on staged files via `lint-staged`
+- A staged-file merge conflict marker guard
+- Full repo TypeScript typecheck
 
 ### 5. Push and Create PR
 ```bash
