@@ -1,179 +1,182 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
-import { Worker } from 'node:worker_threads';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { parseJSONL, parseMessage } from '@/lib/workers/parser-core';
 
-interface ParsedMessage {
-  role: string;
-  content: unknown;
-}
+describe('parser.worker', () => {
+  const tempFiles: string[] = [];
 
-interface ToolCall {
-  toolName: string;
-  [key: string]: unknown;
-}
+  afterEach(() => {
+    for (const filePath of tempFiles.splice(0)) {
+      fs.rmSync(filePath, { force: true });
+    }
+  });
 
-interface ParseResult {
-  messages: ParsedMessage[];
-  toolCalls?: ToolCall[];
-}
-
-interface WorkerResponse {
-  jobId: string;
-  result?: ParseResult;
-  error?: string;
-}
-
-describe('Parser Worker', () => {
-  const generateJobId = () => `job_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-
-  it('should parse a simple JSONL file', async () => {
-    // Create a test file
-    const testFile = path.join(__dirname, '../fixtures/test-session.jsonl');
-    const testData = [
-      { type: 'user', content: 'Hello', timestamp: '2024-01-01T00:00:00Z' },
+  it('parses real Claude-style transcript metadata, tools, and hotspots', async () => {
+    const filePath = createTempJsonl([
+      {
+        type: 'permission-mode',
+        permissionMode: 'bypassPermissions',
+        sessionId: 'parser-test-session',
+      },
+      {
+        type: 'summary',
+        leafUuid: 'parser-test-session',
+        summary: 'Refined the analytics dashboard and validated the charts.',
+      },
+      {
+        type: 'user',
+        uuid: 'msg-user',
+        sessionId: 'parser-test-session',
+        timestamp: '2026-04-22T23:40:51.241Z',
+        cwd: 'C:\\git\\ClaudeUsageDashboard',
+        gitBranch: 'master',
+        version: '2.1.117',
+        message: {
+          role: 'user',
+          content: 'Build a better analytics view for the dashboard.',
+        },
+      },
       {
         type: 'assistant',
-        content: [{ type: 'text', text: 'Hi there!' }],
-        timestamp: '2024-01-01T00:00:01Z',
+        uuid: 'msg-assistant',
+        parentUuid: 'msg-user',
+        sessionId: 'parser-test-session',
+        timestamp: '2026-04-22T23:44:13.839Z',
+        cwd: 'C:\\git\\ClaudeUsageDashboard',
+        gitBranch: 'master',
+        version: '2.1.117',
+        message: {
+          id: 'assistant-message-id',
+          type: 'message',
+          role: 'assistant',
+          model: 'claude-opus-4-7',
+          content: [
+            {
+              type: 'tool_use',
+              id: 'toolu_001',
+              name: 'Edit',
+              input: {
+                path: 'app/analytics/page.tsx',
+              },
+            },
+            {
+              type: 'tool_use',
+              id: 'toolu_002',
+              name: 'Bash',
+              input: {
+                command: 'npm run test:e2e',
+                cwd: 'C:\\git\\ClaudeUsageDashboard',
+              },
+            },
+            {
+              type: 'text',
+              text: 'The analytics view is now wired up.',
+            },
+          ],
+          usage: {
+            input_tokens: 321,
+            output_tokens: 654,
+          },
+        },
       },
-    ];
-
-    fs.writeFileSync(testFile, testData.map((d) => JSON.stringify(d)).join('\n'));
-
-    // Test the worker
-    const workerPath = path.resolve(process.cwd(), 'lib/workers/parser.worker.mjs');
-    const worker = new Worker(workerPath);
-    const jobId = generateJobId();
-
-    const result = await new Promise<ParseResult>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        worker.terminate();
-        reject(new Error('Worker timeout after 5s'));
-      }, 5000);
-
-      worker.on('message', (msg: WorkerResponse) => {
-        if (msg.jobId === jobId) {
-          clearTimeout(timeout);
-          if (msg.error) {
-            reject(new Error(msg.error));
-          } else if (msg.result) {
-            resolve(msg.result);
-          }
-        }
-      });
-
-      worker.on('error', (err) => {
-        clearTimeout(timeout);
-        reject(err);
-      });
-
-      // Send message in the format the worker expects
-      worker.postMessage({ id: jobId, data: { sessionPath: testFile } });
-    });
-
-    await worker.terminate();
-    fs.unlinkSync(testFile);
-
-    expect(result).toBeDefined();
-    expect(result.messages).toHaveLength(2);
-    expect(result.messages[0].role).toBe('user');
-    expect(result.messages[1].role).toBe('assistant');
-  });
-
-  it('should handle tool calls in assistant messages', async () => {
-    const testFile = path.join(__dirname, '../fixtures/test-tools.jsonl');
-    const testData = [
       {
-        type: 'assistant',
-        content: [
-          { type: 'text', text: 'Let me check that file.' },
-          { type: 'tool_use', id: 'tool1', name: 'read_file', input: { path: '/test.txt' } },
-        ],
-        timestamp: '2024-01-01T00:00:00Z',
+        type: 'file-history-snapshot',
+        snapshot: {
+          timestamp: '2026-04-22T23:44:15.000Z',
+          trackedFileBackups: {
+            'app/analytics/page.tsx': {},
+            'lib/trpc/routers/analytics.ts': {},
+          },
+        },
       },
-    ];
+      'not valid json at all',
+    ]);
 
-    fs.writeFileSync(testFile, testData.map((d) => JSON.stringify(d)).join('\n'));
+    const parsed = await parseJSONL(filePath, 0);
 
-    const workerPath = path.resolve(process.cwd(), 'lib/workers/parser.worker.mjs');
-    const worker = new Worker(workerPath);
-    const jobId = generateJobId();
-
-    const result = await new Promise<ParseResult>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        worker.terminate();
-        reject(new Error('Worker timeout'));
-      }, 5000);
-
-      worker.on('message', (msg: WorkerResponse) => {
-        if (msg.jobId === jobId) {
-          clearTimeout(timeout);
-          if (msg.error) {
-            reject(new Error(msg.error));
-          } else if (msg.result) {
-            resolve(msg.result);
-          }
-        }
-      });
-
-      worker.on('error', (err) => {
-        clearTimeout(timeout);
-        reject(err);
-      });
-
-      worker.postMessage({ id: jobId, data: { sessionPath: testFile } });
+    expect(parsed.metadata).toMatchObject({
+      cwd: 'C:\\git\\ClaudeUsageDashboard',
+      gitBranch: 'master',
+      version: '2.1.117',
+      permissionMode: 'bypassPermissions',
     });
-
-    await worker.terminate();
-    fs.unlinkSync(testFile);
-
-    expect(result.toolCalls).toHaveLength(1);
-    expect(result.toolCalls?.[0].toolName).toBe('read_file');
+    expect(parsed.summary).toMatchObject({
+      leafUuid: 'parser-test-session',
+      summary: 'Refined the analytics dashboard and validated the charts.',
+    });
+    expect(parsed.summaries).toHaveLength(1);
+    expect(parsed.messages).toHaveLength(2);
+    expect(parsed.messages[1]).toMatchObject({
+      uuid: 'msg-assistant',
+      type: 'assistant',
+      model: 'claude-opus-4-7',
+      inputTokens: 321,
+      outputTokens: 654,
+      tokens: 654,
+    });
+    expect(parsed.toolCalls).toEqual([
+      {
+        id: 'toolu_001',
+        messageUuid: 'msg-assistant',
+        name: 'Edit',
+        input: {
+          path: 'app/analytics/page.tsx',
+        },
+        timestamp: '2026-04-22T23:44:13.839Z',
+      },
+      {
+        id: 'toolu_002',
+        messageUuid: 'msg-assistant',
+        name: 'Bash',
+        input: {
+          command: 'npm run test:e2e',
+          cwd: 'C:\\git\\ClaudeUsageDashboard',
+        },
+        timestamp: '2026-04-22T23:44:13.839Z',
+      },
+    ]);
+    expect(parsed.filesModified).toEqual(
+      expect.arrayContaining([
+        'app/analytics/page.tsx',
+        'app/analytics/page.tsx',
+        'lib/trpc/routers/analytics.ts',
+      ])
+    );
+    expect(parsed.foldersAccessed).toEqual(
+      expect.arrayContaining(['app/analytics', 'lib/trpc/routers', 'C:\\git\\ClaudeUsageDashboard'])
+    );
   });
 
-  it('should skip malformed lines without failing', async () => {
-    const testFile = path.join(__dirname, '../fixtures/test-malformed.jsonl');
-    const testData = [
-      '{"type":"user","content":"Hello","timestamp":"2024-01-01T00:00:00Z"}',
-      'this is not valid json',
-      '{"type":"assistant","content":"Hi","timestamp":"2024-01-01T00:00:01Z"}',
-    ];
-
-    fs.writeFileSync(testFile, testData.join('\n'));
-
-    const workerPath = path.resolve(process.cwd(), 'lib/workers/parser.worker.mjs');
-    const worker = new Worker(workerPath);
-    const jobId = generateJobId();
-
-    const result = await new Promise<ParseResult>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        worker.terminate();
-        reject(new Error('Worker timeout'));
-      }, 5000);
-
-      worker.on('message', (msg: WorkerResponse) => {
-        if (msg.jobId === jobId) {
-          clearTimeout(timeout);
-          if (msg.error) {
-            reject(new Error(msg.error));
-          } else if (msg.result) {
-            resolve(msg.result);
-          }
-        }
-      });
-
-      worker.on('error', (err) => {
-        clearTimeout(timeout);
-        reject(err);
-      });
-
-      worker.postMessage({ id: jobId, data: { sessionPath: testFile } });
+  it('falls back to estimated tokens when usage metadata is absent', () => {
+    const message = parseMessage({
+      type: 'assistant',
+      uuid: 'msg-assistant',
+      sessionId: 'parser-test-session',
+      timestamp: '2026-04-22T23:44:13.839Z',
+      message: {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Plain text response' }],
+      },
     });
 
-    await worker.terminate();
-    fs.unlinkSync(testFile);
-
-    expect(result.messages).toHaveLength(2); // Should have 2 valid messages
+    expect(message).toMatchObject({
+      uuid: 'msg-assistant',
+    });
+    expect(message?.tokens).toBeGreaterThan(0);
   });
+
+  function createTempJsonl(lines: Array<Record<string, unknown> | string>) {
+    const filePath = path.join(os.tmpdir(), `parser-worker-${Date.now()}-${Math.random()}.jsonl`);
+    fs.writeFileSync(
+      filePath,
+      `${lines
+        .map((line) => (typeof line === 'string' ? line : JSON.stringify(line)))
+        .join('\n')}\n`,
+      'utf8'
+    );
+    tempFiles.push(filePath);
+    return filePath;
+  }
 });

@@ -145,6 +145,7 @@ describe('ClawdbotProvider', () => {
     expect(parsed.toolCalls).toEqual([
       {
         id: 'tool-1',
+        messageUuid: 'msg-assistant',
         name: 'readFile',
         input: { path: 'README.md' },
         timestamp: '2026-01-01T00:00:02.000Z',

@@ -196,11 +196,35 @@ const seededSessions: SeedSession[] = [
         tokens: 144,
         content: JSON.stringify([
           {
+            type: 'tool_use',
+            name: 'edit',
+            input: {
+              path: 'lib/trpc/routers/sessions.ts',
+              change: 'simplify the default list query',
+            },
+          },
+          {
             type: 'text',
             text: 'The router refactor is complete and the integration tests still pass.',
           },
         ]),
+        toolCalls: [
+          {
+            name: 'edit',
+            input: {
+              path: 'lib/trpc/routers/sessions.ts',
+            },
+            timestamp: '2026-04-18T09:48:00.000Z',
+          },
+        ],
         terminalContent: [
+          {
+            type: 'tool_use',
+            name: 'edit',
+            input: {
+              path: 'lib/trpc/routers/sessions.ts',
+            },
+          },
           {
             type: 'text',
             text: 'The router refactor is complete and the integration tests still pass.',
@@ -238,6 +262,13 @@ const seededSessions: SeedSession[] = [
         tokens: 132,
         content: JSON.stringify([
           {
+            type: 'tool_use',
+            name: 'bash',
+            input: {
+              command: 'npm run pages:build',
+            },
+          },
+          {
             type: 'tool_result',
             content: 'Error: output directory not found for GitHub Pages publish step.',
             is_error: true,
@@ -247,7 +278,23 @@ const seededSessions: SeedSession[] = [
             text: 'The workflow needs a static site build before Pages can deploy successfully.',
           },
         ]),
+        toolCalls: [
+          {
+            name: 'bash',
+            input: {
+              command: 'npm run pages:build',
+            },
+            timestamp: '2026-04-17T17:19:00.000Z',
+          },
+        ],
         terminalContent: [
+          {
+            type: 'tool_use',
+            name: 'bash',
+            input: {
+              command: 'npm run pages:build',
+            },
+          },
           {
             type: 'tool_result',
             content: 'Error: output directory not found for GitHub Pages publish step.',

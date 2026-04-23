@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -67,6 +66,7 @@ interface ParsedClawdbotSession {
   }>;
   toolCalls: Array<{
     id: string;
+    messageUuid: string;
     name: string;
     input: Record<string, unknown>;
     timestamp: string;
@@ -223,6 +223,7 @@ export class ClawdbotProvider implements AIProvider {
                 if (contentItem.type === 'toolCall' && contentItem.id && contentItem.name) {
                   parsed.toolCalls.push({
                     id: contentItem.id,
+                    messageUuid: entry.id,
                     name: contentItem.name,
                     input: contentItem.arguments || {},
                     timestamp: entry.timestamp,
@@ -314,7 +315,7 @@ export class ClawdbotProvider implements AIProvider {
       const messageChunks = this.chunkArray(parsed.messages, 100);
       for (const chunk of messageChunks) {
         const messageValues = chunk.map((msg) => ({
-          id: randomUUID(),
+          id: msg.uuid,
           sessionId,
           parentId: msg.parentUuid || null,
           // Map toolResult to assistant since DB only accepts user/assistant
@@ -337,7 +338,7 @@ export class ClawdbotProvider implements AIProvider {
       const toolChunks = this.chunkArray(parsed.toolCalls, 100);
       for (const chunk of toolChunks) {
         const toolValues = chunk.map((tool) => ({
-          messageId: sessionId,
+          messageId: tool.messageUuid,
           toolName: tool.name,
           parameters: JSON.stringify(tool.input),
           success: true,

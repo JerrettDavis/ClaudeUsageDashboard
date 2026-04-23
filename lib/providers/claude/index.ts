@@ -182,11 +182,11 @@ export class ClaudeProvider implements AIProvider {
     const stats = this.calculateSessionStats(parsed);
 
     // Extract metadata from parsed data
-    const metadata: Record<string, unknown> = {};
+    const metadata = parsed.metadata ?? {};
     const lastSummary =
       parsed.summaries && parsed.summaries.length > 0
         ? parsed.summaries[parsed.summaries.length - 1].summary
-        : null;
+        : parsed.summary?.summary || null;
 
     const sessionData = {
       endTime: stats.endTime,
@@ -196,9 +196,9 @@ export class ClaudeProvider implements AIProvider {
       tokensInput: stats.tokensInput,
       tokensOutput: stats.tokensOutput,
       estimatedCost: stats.estimatedCost,
-      cwd: (metadata.cwd as string) || null,
-      gitBranch: (metadata.gitBranch as string) || null,
-      version: (metadata.version as string) || null,
+      cwd: metadata.cwd || null,
+      gitBranch: metadata.gitBranch || null,
+      version: metadata.version || null,
       lastSummary,
       filesModified: JSON.stringify(parsed.filesModified || []),
       foldersAccessed: JSON.stringify(parsed.foldersAccessed || []),
@@ -227,7 +227,7 @@ export class ClaudeProvider implements AIProvider {
       const messageChunks = this.chunkArray(parsed.messages, 100);
       for (const chunk of messageChunks) {
         const messageValues = chunk.map((msg) => ({
-          id: randomUUID(),
+          id: msg.uuid,
           sessionId,
           parentId: msg.parentUuid || null,
           role: msg.type,
@@ -251,7 +251,7 @@ export class ClaudeProvider implements AIProvider {
       const toolChunks = this.chunkArray(parsed.toolCalls, 100);
       for (const chunk of toolChunks) {
         const toolValues = chunk.map((tool) => ({
-          messageId: sessionId, // Note: we don't have message ID from worker
+          messageId: tool.messageUuid,
           toolName: tool.name,
           parameters: JSON.stringify(tool.input),
           success: true,
@@ -289,8 +289,17 @@ export class ClaudeProvider implements AIProvider {
 
     let tokensInput = 0;
     let tokensOutput = 0;
+    const hasUsageMetadata = parsed.messages.some(
+      (msg) => typeof msg.inputTokens === 'number' || typeof msg.outputTokens === 'number'
+    );
 
     for (const msg of parsed.messages) {
+      if (hasUsageMetadata) {
+        tokensInput += msg.inputTokens || 0;
+        tokensOutput += msg.outputTokens || 0;
+        continue;
+      }
+
       if (msg.type === 'user') {
         tokensInput += msg.tokens || 0;
       } else {

@@ -39,58 +39,79 @@ interface ClaudeProviderState {
   watchers: Set<(event: SessionEvent) => void>;
 }
 
-const parsedSessionFixture: ParsedSession = {
-  messages: [
-    {
-      uuid: 'msg_001',
-      parentUuid: undefined,
-      sessionId: 'test-session-001',
-      type: 'user',
-      timestamp: '2024-01-15T10:00:00.000Z',
-      content: 'Hello, can you help me with a Python script?',
-      tokens: 12,
+function createParsedSessionFixture(sessionId: string): ParsedSession {
+  const userMessageId = `${sessionId}-msg-001`;
+  const assistantMessageId = `${sessionId}-msg-002`;
+  const toolCallId = `${sessionId}-tool-001`;
+
+  return {
+    metadata: {
+      cwd: 'C:\\git\\demo\\project',
+      gitBranch: 'main',
+      version: '2.1.117',
+      permissionMode: 'bypassPermissions',
     },
-    {
-      uuid: 'msg_002',
-      parentUuid: 'msg_001',
-      sessionId: 'test-session-001',
-      type: 'assistant',
-      timestamp: '2024-01-15T10:00:05.000Z',
-      content: [{ type: 'text', text: 'Sure, here is a reader.' }],
-      tokens: 24,
-      toolCalls: [
-        {
-          id: 'tool_001',
-          name: 'create',
-          input: {
-            path: 'reader.py',
-            file_text:
-              'def read_file(filename):\n    with open(filename) as f:\n        return f.read()\n',
-          },
-          timestamp: '2024-01-15T10:00:05.000Z',
-        },
-      ],
-    },
-  ],
-  summary: {
-    leafUuid: 'test-session-001',
-    summary: 'Test session for deterministic Claude provider tests',
-  },
-  summaries: [{ summary: 'Test session for deterministic Claude provider tests' }],
-  fileSnapshots: [{ filePath: 'reader.py', timestamp: '2024-01-15T10:00:05.000Z' }],
-  filesModified: ['reader.py'],
-  foldersAccessed: ['C:\\git\\demo\\project'],
-  toolCalls: [
-    {
-      id: 'tool_001',
-      name: 'create',
-      input: {
-        path: 'reader.py',
+    messages: [
+      {
+        uuid: userMessageId,
+        parentUuid: undefined,
+        sessionId,
+        type: 'user',
+        timestamp: '2024-01-15T10:00:00.000Z',
+        content: 'Hello, can you help me with a Python script?',
+        tokens: 12,
       },
-      timestamp: '2024-01-15T10:00:05.000Z',
+      {
+        uuid: assistantMessageId,
+        parentUuid: userMessageId,
+        sessionId,
+        type: 'assistant',
+        timestamp: '2024-01-15T10:00:05.000Z',
+        content: [{ type: 'text', text: 'Sure, here is a reader.' }],
+        tokens: 24,
+        inputTokens: 12,
+        outputTokens: 24,
+        toolCalls: [
+          {
+            id: toolCallId,
+            messageUuid: assistantMessageId,
+            name: 'create',
+            input: {
+              path: 'reader.py',
+              file_text:
+                'def read_file(filename):\n    with open(filename) as f:\n        return f.read()\n',
+            },
+            timestamp: '2024-01-15T10:00:05.000Z',
+          },
+        ],
+      },
+    ],
+    summary: {
+      leafUuid: sessionId,
+      summary: 'Test session for deterministic Claude provider tests',
     },
-  ],
-};
+    summaries: [
+      {
+        leafUuid: sessionId,
+        summary: 'Test session for deterministic Claude provider tests',
+      },
+    ],
+    fileSnapshots: [{ filePath: 'reader.py', timestamp: '2024-01-15T10:00:05.000Z' }],
+    filesModified: ['reader.py'],
+    foldersAccessed: ['C:\\git\\demo\\project'],
+    toolCalls: [
+      {
+        id: toolCallId,
+        messageUuid: assistantMessageId,
+        name: 'create',
+        input: {
+          path: 'reader.py',
+        },
+        timestamp: '2024-01-15T10:00:05.000Z',
+      },
+    ],
+  };
+}
 
 describe('ClaudeProvider (deterministic)', () => {
   let tempRoot: string;
@@ -104,7 +125,9 @@ describe('ClaudeProvider (deterministic)', () => {
     configDir = path.join(tempRoot, '.claude');
     sessionFilePath = createSessionFile(configDir, 'C--git-demo-project', 'test-session-001');
     provider = new ClaudeProvider(configDir);
-    poolMocks.execute.mockResolvedValue(structuredClone(parsedSessionFixture));
+    poolMocks.execute.mockImplementation(async (job: { data: { sessionPath: string } }) =>
+      createParsedSessionFixture(path.basename(job.data.sessionPath, '.jsonl'))
+    );
     resetSyncStatusState();
   });
 
@@ -158,6 +181,9 @@ describe('ClaudeProvider (deterministic)', () => {
     expect(storedSession).toHaveLength(1);
     expect(storedSession[0]).toMatchObject({
       providerId: 'claude',
+      cwd: 'C:\\git\\demo\\project',
+      gitBranch: 'main',
+      version: '2.1.117',
       projectPath: 'C:\\git\\demo\\project',
       messageCount: 2,
       tokensInput: 12,

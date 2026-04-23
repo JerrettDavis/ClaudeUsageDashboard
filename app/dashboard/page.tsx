@@ -3,16 +3,16 @@
 import { formatDistanceToNow } from 'date-fns';
 import {
   Activity,
+  BarChart3,
   Clock,
   DollarSign,
   FileText,
-  Play,
   RefreshCw,
   Terminal,
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { trpc } from '@/lib/trpc/provider';
@@ -20,17 +20,23 @@ import { trpc } from '@/lib/trpc/provider';
 export default function DashboardPage() {
   const [isSyncing, setIsSyncing] = useState(false);
   const utils = trpc.useUtils();
+  const analyticsRange = useMemo(
+    () => ({
+      startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      endDate: new Date(),
+    }),
+    []
+  );
 
   const { data: sessions, isLoading } = trpc.sessions.list.useQuery({ limit: 8 });
-  const { data: stats } = trpc.analytics.usageStats.useQuery({
-    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
-    endDate: new Date(),
-  });
+  const { data: stats } = trpc.analytics.usageStats.useQuery(analyticsRange);
+  const { data: overview } = trpc.analytics.overview.useQuery(analyticsRange);
 
   const syncMutation = trpc.sync.syncProvider.useMutation({
     onSuccess: () => {
       utils.sessions.list.invalidate();
       utils.analytics.usageStats.invalidate();
+      utils.analytics.overview.invalidate();
       setIsSyncing(false);
     },
     onError: () => {
@@ -78,19 +84,29 @@ export default function DashboardPage() {
                 value={stats?.totalSessions || 0}
               />
               <MetricItem
-                icon={<FileText className="h-4 w-4 text-emerald-400" />}
-                label="Tokens In"
-                value={(stats?.totalTokensInput || 0).toLocaleString()}
+                icon={<BarChart3 className="h-4 w-4 text-emerald-400" />}
+                label="Active Projects"
+                value={overview?.activeProjects || 0}
               />
               <MetricItem
                 icon={<Zap className="h-4 w-4 text-amber-400" />}
-                label="Tokens Out"
-                value={(stats?.totalTokensOutput || 0).toLocaleString()}
+                label="Completion Rate"
+                value={`${(overview?.completionRate || 0).toFixed(1)}%`}
               />
               <MetricItem
                 icon={<DollarSign className="h-4 w-4 text-rose-400" />}
                 label="Cost (Est)"
                 value={`$${(stats?.estimatedCost || 0).toFixed(4)}`}
+              />
+              <MetricItem
+                icon={<FileText className="h-4 w-4 text-blue-400" />}
+                label="Avg Tokens"
+                value={(overview?.averageTokensPerSession || 0).toLocaleString()}
+              />
+              <MetricItem
+                icon={<Clock className="h-4 w-4 text-violet-400" />}
+                label="Avg Session"
+                value={formatDurationMinutes(overview?.averageSessionDurationMinutes)}
               />
             </div>
           </div>
@@ -112,15 +128,19 @@ export default function DashboardPage() {
                 variant="cyan"
               />
               <ActionButton
-                icon={<Play className="h-4 w-4" />}
-                label="Start New Session"
-                onClick={() => console.log('Start session')}
+                icon={<BarChart3 className="h-4 w-4" />}
+                label="Open Analytics"
+                onClick={() => {
+                  window.location.href = '/analytics';
+                }}
                 variant="green"
               />
               <ActionButton
                 icon={<FileText className="h-4 w-4" />}
                 label="View All Sessions"
-                onClick={() => (window.location.href = '/sessions')}
+                onClick={() => {
+                  window.location.href = '/sessions';
+                }}
                 variant="default"
               />
             </div>
@@ -165,10 +185,11 @@ export default function DashboardPage() {
         <div className="border border-zinc-800 bg-zinc-900/50 rounded">
           <div className="border-b border-zinc-800 bg-zinc-900 px-4 py-2 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-zinc-400 font-mono">SESSION LOG</h2>
-            <Link href="/sessions">
-              <button className="text-xs text-cyan-400 hover:text-cyan-300 font-mono transition-colors">
-                VIEW ALL →
-              </button>
+            <Link
+              href="/sessions"
+              className="text-xs text-cyan-400 hover:text-cyan-300 font-mono transition-colors"
+            >
+              VIEW ALL →
             </Link>
           </div>
           <div className="overflow-x-auto">
@@ -236,7 +257,7 @@ function MetricItem({
   label,
   value,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: string | number;
 }) {
@@ -258,7 +279,7 @@ function ActionButton({
   variant = 'default',
   disabled = false,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   onClick: () => void;
   variant?: 'default' | 'cyan' | 'green';
@@ -273,6 +294,7 @@ function ActionButton({
 
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={disabled}
       className={`w-full flex items-center gap-2 px-3 py-2 rounded border text-xs font-mono transition-all disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]}`}
@@ -281,4 +303,13 @@ function ActionButton({
       {label}
     </button>
   );
+}
+
+function formatDurationMinutes(value?: number | null) {
+  const minutes = Number(value || 0);
+  if (minutes >= 60) {
+    return `${(minutes / 60).toFixed(1)}h`;
+  }
+
+  return `${minutes.toFixed(1)}m`;
 }
