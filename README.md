@@ -1,6 +1,12 @@
 # AI Usage Dashboard
 
-A comprehensive, real-time monitoring dashboard for AI coding assistant usage. Track sessions, analyze usage patterns, and monitor costs across your development workflow. Built with Next.js and TypeScript for performance and extensibility.
+[![CI](https://github.com/JerrettDavis/ClaudeUsageDashboard/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/JerrettDavis/ClaudeUsageDashboard/actions/workflows/ci.yml)
+[![GitHub Pages](https://github.com/JerrettDavis/ClaudeUsageDashboard/actions/workflows/pages.yml/badge.svg?branch=master)](https://github.com/JerrettDavis/ClaudeUsageDashboard/actions/workflows/pages.yml)
+[![codecov](https://codecov.io/gh/JerrettDavis/ClaudeUsageDashboard/branch/master/graph/badge.svg)](https://codecov.io/gh/JerrettDavis/ClaudeUsageDashboard)
+
+A comprehensive, real-time monitoring dashboard for AI coding assistant usage. Track sessions, analyze usage patterns, monitor costs across your development workflow, and keep onboarding close at hand with built-in guides, screenshot-backed docs, and a published GitHub Pages companion site.
+
+**Explore:** [Releases](https://github.com/JerrettDavis/ClaudeUsageDashboard/releases) · [Docs site](https://jerrettdavis.github.io/ClaudeUsageDashboard/) · [In-app guides](https://jerrettdavis.github.io/ClaudeUsageDashboard/guides/) · [Screenshot reference](./SCREENSHOTS.md)
 
 ## ✨ Features
 
