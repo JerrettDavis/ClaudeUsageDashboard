@@ -24,6 +24,18 @@ test.describe('product screenshots', () => {
       animations: 'disabled',
     });
 
+    await page.goto('/analytics');
+    await expect(
+      page.getByRole('heading', {
+        name: 'Real usage, workflow health, and where the agent spends time',
+      })
+    ).toBeVisible();
+    await page.screenshot({
+      path: path.join(screenshotDir, 'analytics-overview.png'),
+      fullPage: true,
+      animations: 'disabled',
+    });
+
     await page.goto('/sessions/demo-session-active');
     await expect(page.getByText('SESSION SUMMARY')).toBeVisible();
     await page.screenshot({

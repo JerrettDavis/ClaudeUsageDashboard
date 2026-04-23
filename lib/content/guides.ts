@@ -39,6 +39,15 @@ export const productScreenshots: ProductScreenshot[] = [
     alt: 'Sessions page showing filter buttons and a table of Claude sessions.',
   },
   {
+    id: 'analytics-overview',
+    title: 'Analytics overview',
+    description:
+      'Operator dashboard with KPI cards, trend charts, tool mix, project leaderboard, and hotspots.',
+    fileName: 'analytics-overview.png',
+    route: '/analytics',
+    alt: 'Analytics dashboard showing operator KPIs, charts, leaderboards, and hotspot panels.',
+  },
+  {
     id: 'session-detail',
     title: 'Session detail',
     description:
@@ -113,6 +122,31 @@ export const userGuideSections: UserGuideSection[] = [
         title: 'Open a detail page',
         description:
           'Select View on any row to inspect the summary, files touched, folders accessed, and full conversation.',
+      },
+    ],
+  },
+  {
+    id: 'analyze-workflow-health',
+    title: 'Analyze workflow health',
+    summary:
+      'Use the analytics dashboard to understand completion rate, tool mix, busiest projects, and transcript hotspots.',
+    route: '/analytics',
+    screenshotId: 'analytics-overview',
+    steps: [
+      {
+        title: 'Open Analytics',
+        description:
+          'Start on the analytics dashboard when you want a higher-signal view of recent usage than the main landing page.',
+      },
+      {
+        title: 'Read the KPI strip first',
+        description:
+          'The top metrics summarize sessions, active projects, completion rate, and average session size for the selected time window.',
+      },
+      {
+        title: 'Use charts and leaderboards to find hotspots',
+        description:
+          'Scan trend lines, tool mix, hourly activity, project ranking, and file or folder hotspots to see where effort is concentrating.',
       },
     ],
   },

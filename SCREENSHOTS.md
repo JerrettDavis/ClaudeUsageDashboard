@@ -18,6 +18,10 @@ npm run screenshots
 ![Sessions List](public/screenshots/sessions-list.png)
 *Filterable inventory of active, completed, and error sessions*
 
+## Analytics Overview
+![Analytics Overview](public/screenshots/analytics-overview.png)
+*Operator analytics for completion rate, tool usage, project activity, and transcript hotspots*
+
 ## Tiling Window Manager
 ![Tiling Monitor](public/screenshots/tiling-monitor.png)
 *Monitor active Claude sessions in a terminal-style tiling layout*
