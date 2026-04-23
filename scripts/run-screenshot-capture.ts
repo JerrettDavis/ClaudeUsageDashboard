@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 const env = {
   ...process.env,
   CAPTURE_PRODUCT_SCREENSHOTS: '1',
+  CI: '1',
 };
 
 const result =

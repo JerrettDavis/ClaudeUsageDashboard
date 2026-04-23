@@ -30,6 +30,17 @@ test.describe('product screenshots', () => {
         name: 'Real usage, workflow health, and where the agent spends time',
       })
     ).toBeVisible();
+    await expect(
+      page.getByRole('table').getByText('ClaudeUsageDashboard', { exact: true })
+    ).toBeVisible();
+    await expect(page.getByText('.github/workflows')).toBeVisible();
+    await expect(
+      page
+        .locator('section')
+        .filter({ has: page.getByRole('heading', { name: 'Tool Mix' }) })
+        .getByText('edit')
+        .first()
+    ).toBeVisible();
     await page.screenshot({
       path: path.join(screenshotDir, 'analytics-overview.png'),
       fullPage: true,
