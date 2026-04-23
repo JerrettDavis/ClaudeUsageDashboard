@@ -124,14 +124,25 @@ function renderFigure(
 
   return `
     <figure class="figure-card">
-      <img
-        src="${assetHref(currentDepth, `screenshots/${screenshot.fileName}`)}"
-        alt="${escapeHtml(screenshot.alt)}"
-        loading="lazy"
-      />
+      <button
+        type="button"
+        class="figure-trigger"
+        data-lightbox-image="${assetHref(currentDepth, `screenshots/${screenshot.fileName}`)}"
+        data-lightbox-alt="${escapeHtml(screenshot.alt)}"
+        data-lightbox-title="${escapeHtml(options?.captionTitle ?? screenshot.title)}"
+        data-lightbox-description="${escapeHtml(options?.captionText ?? screenshot.description)}"
+        aria-label="Expand screenshot: ${escapeHtml(options?.captionTitle ?? screenshot.title)}"
+      >
+        <img
+          src="${assetHref(currentDepth, `screenshots/${screenshot.fileName}`)}"
+          alt="${escapeHtml(screenshot.alt)}"
+          loading="lazy"
+        />
+      </button>
       <figcaption>
         <strong>${escapeHtml(options?.captionTitle ?? screenshot.title)}</strong>
         <span>${escapeHtml(options?.captionText ?? screenshot.description)}</span>
+        <span class="figure-hint">Click image to expand</span>
       </figcaption>
     </figure>
   `;
@@ -694,16 +705,96 @@ function renderLayout(page: DocPage, currentDepth: number) {
         background: rgba(2, 6, 23, 0.92);
       }
 
+      .figure-trigger {
+        display: block;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        border-bottom: 1px solid var(--border-soft);
+        background: transparent;
+        cursor: zoom-in;
+      }
+
+      .figure-trigger:hover img,
+      .figure-trigger:focus-visible img {
+        transform: scale(1.01);
+      }
+
       .figure-card img {
         width: 100%;
         aspect-ratio: 16 / 10;
         object-fit: cover;
+        transition: transform 180ms ease;
       }
 
       .figure-card figcaption {
         display: grid;
         gap: 6px;
         padding: 14px 16px;
+      }
+
+      .figure-hint {
+        color: var(--accent-secondary);
+        font-size: 0.78rem;
+        font-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      }
+
+      .lightbox[hidden] {
+        display: none;
+      }
+
+      .lightbox {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: rgba(2, 6, 23, 0.82);
+        backdrop-filter: blur(12px);
+        cursor: zoom-out;
+      }
+
+      .lightbox-dialog {
+        position: relative;
+        z-index: 1;
+        width: min(1120px, 100%);
+        max-height: calc(100dvh - 48px);
+        overflow: auto;
+        padding: 16px;
+        border: 1px solid rgba(56, 189, 248, 0.22);
+        border-radius: 6px;
+        background: rgba(5, 11, 22, 0.98);
+        box-shadow: 0 30px 120px rgba(0, 0, 0, 0.45);
+        cursor: auto;
+      }
+
+      .lightbox-close {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        margin-left: auto;
+        min-width: 44px;
+      }
+
+      .lightbox-figure {
+        display: grid;
+        gap: 14px;
+        margin: 0;
+      }
+
+      .lightbox-figure img {
+        width: 100%;
+        height: auto;
+        max-height: calc(100dvh - 180px);
+        object-fit: contain;
+        background: #020617;
+      }
+
+      .lightbox-caption {
+        display: grid;
+        gap: 8px;
       }
 
       .pager-grid {
@@ -823,18 +914,86 @@ function renderLayout(page: DocPage, currentDepth: number) {
       ${renderToc(page.sections)}
     </main>
 
+    <div class="lightbox" id="screenshot-lightbox" hidden>
+      <div
+        class="lightbox-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="lightbox-title"
+        aria-describedby="lightbox-description"
+      >
+        <button type="button" class="button secondary lightbox-close" aria-label="Close expanded screenshot">
+          Close
+        </button>
+        <figure class="lightbox-figure">
+          <img id="lightbox-image" src="" alt="" />
+          <figcaption class="lightbox-caption">
+            <strong id="lightbox-title"></strong>
+            <span id="lightbox-description" class="page-meta"></span>
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+
     <script>
       const sectionIds = ${escapeJson(serializedSections)};
       const tocLinks = Array.from(document.querySelectorAll('.toc-link'));
       const sections = sectionIds
         .map((id) => document.getElementById(id))
         .filter(Boolean);
+      const lightbox = document.getElementById('screenshot-lightbox');
+      const lightboxImage = document.getElementById('lightbox-image');
+      const lightboxTitle = document.getElementById('lightbox-title');
+      const lightboxDescription = document.getElementById('lightbox-description');
+      const lightboxButtons = Array.from(document.querySelectorAll('[data-lightbox-image]'));
+      const lightboxCloseButtons = Array.from(document.querySelectorAll('.lightbox-close'));
+      const lightboxDialog = lightbox?.querySelector('.lightbox-dialog');
+      let lastFocusedElement = null;
 
       const setActiveToc = (id) => {
         tocLinks.forEach((link) => {
           const isActive = link.getAttribute('href') === '#' + id;
           link.classList.toggle('is-active', isActive);
         });
+      };
+
+      const closeLightbox = () => {
+        if (!lightbox || lightbox.hasAttribute('hidden')) {
+          return;
+        }
+
+        lightbox.setAttribute('hidden', '');
+
+        if (lastFocusedElement instanceof HTMLElement) {
+          lastFocusedElement.focus();
+        }
+      };
+
+      const openLightbox = (trigger) => {
+        if (!lightbox || !lightboxImage || !lightboxTitle || !lightboxDescription) {
+          return;
+        }
+
+        const imageSrc = trigger.getAttribute('data-lightbox-image');
+        const imageAlt = trigger.getAttribute('data-lightbox-alt') || '';
+        const imageTitle = trigger.getAttribute('data-lightbox-title') || '';
+        const imageDescription = trigger.getAttribute('data-lightbox-description') || '';
+
+        if (!imageSrc) {
+          return;
+        }
+
+        lightboxImage.setAttribute('src', imageSrc);
+        lightboxImage.setAttribute('alt', imageAlt);
+        lightboxTitle.textContent = imageTitle;
+        lightboxDescription.textContent = imageDescription;
+        lightbox.removeAttribute('hidden');
+        lastFocusedElement = trigger;
+
+        const closeButton = lightbox.querySelector('.lightbox-close');
+        if (closeButton instanceof HTMLElement) {
+          closeButton.focus();
+        }
       };
 
       if (sections.length > 0) {
@@ -857,6 +1016,34 @@ function renderLayout(page: DocPage, currentDepth: number) {
         sections.forEach((section) => observer.observe(section));
         setActiveToc(sections[0].id);
       }
+
+      lightboxButtons.forEach((button) => {
+        button.addEventListener('click', () => openLightbox(button));
+      });
+
+      lightboxCloseButtons.forEach((button) => {
+        button.addEventListener('click', closeLightbox);
+      });
+
+      if (lightbox instanceof HTMLElement) {
+        lightbox.addEventListener('click', (event) => {
+          if (event.target === lightbox) {
+            closeLightbox();
+          }
+        });
+      }
+
+      if (lightboxDialog instanceof HTMLElement) {
+        lightboxDialog.addEventListener('click', (event) => {
+          event.stopPropagation();
+        });
+      }
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          closeLightbox();
+        }
+      });
     </script>
   </body>
 </html>`;
