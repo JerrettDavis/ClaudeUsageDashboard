@@ -209,7 +209,11 @@ export function parseMessage(entry: Record<string, unknown>): ParsedMessage | nu
   return message;
 }
 
-export function extractToolCalls(message: unknown, messageUuid: string, timestamp: string): ParsedToolCall[] {
+export function extractToolCalls(
+  message: unknown,
+  messageUuid: string,
+  timestamp: string
+): ParsedToolCall[] {
   const toolCalls: ParsedToolCall[] = [];
 
   const contentBlocks = Array.isArray(message)
@@ -330,4 +334,11 @@ const FILE_PATH_KEYS = new Set([
   'to',
 ]);
 
-const FOLDER_PATH_KEYS = new Set(['cwd', 'directory', 'dir', 'folder', 'folderpath', 'projectpath']);
+const FOLDER_PATH_KEYS = new Set([
+  'cwd',
+  'directory',
+  'dir',
+  'folder',
+  'folderpath',
+  'projectpath',
+]);
