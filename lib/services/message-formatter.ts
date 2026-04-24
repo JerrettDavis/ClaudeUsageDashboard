@@ -1,6 +1,6 @@
 /**
- * Formats Claude/Clawdbot JSONL messages into terminal-style output
- * Supports both Claude Code and Clawdbot session formats
+ * Formats Claude/OpenClaw JSONL messages into terminal-style output
+ * Supports both Claude Code and OpenClaw session formats
  */
 
 interface SessionMessage {
@@ -39,9 +39,9 @@ export function formatMessageAsTerminal(msg: SessionMessage): string[] {
   // Safety checks
   if (!msg) return lines;
 
-  // Determine the message type - handle both Claude and Clawdbot formats
+  // Determine the message type - handle both Claude and OpenClaw formats
   // Claude: type is 'user' or 'assistant'
-  // Clawdbot: type is 'message', role is in message.role
+  // OpenClaw: type is 'message', role is in message.role
   let msgType: MessageType = msg.type;
   if (msg.type === 'message' && msg.message?.role) {
     msgType = msg.message.role;
@@ -74,7 +74,7 @@ export function formatMessageAsTerminal(msg: SessionMessage): string[] {
     return lines;
   }
 
-  // Handle tool results (Clawdbot format)
+  // Handle tool results (OpenClaw format)
   if (msgType === 'toolResult') {
     const resultText = extractResultText(
       content as string | Array<{ type: string; text?: string }> | undefined
@@ -96,7 +96,7 @@ export function formatMessageAsTerminal(msg: SessionMessage): string[] {
         // Regular assistant text with ● bullet
         lines.push(`● ${item.text}`);
       } else if (item.type === 'thinking' && item.thinking) {
-        // Thinking block (Clawdbot extended thinking)
+        // Thinking block (OpenClaw extended thinking)
         lines.push(`💭 ${truncate(item.thinking, 80)}`);
       } else if (item.type === 'tool_use' || item.type === 'toolCall') {
         // Tool call with ● and tool name

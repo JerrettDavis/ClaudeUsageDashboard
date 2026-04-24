@@ -4,6 +4,13 @@ import path from 'node:path';
 import { and, desc, eq, gte, lte } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { messages, sessions, toolCalls } from '@/lib/db/schema';
+import {
+  buildOpenClawSessionId,
+  detectOpenClawInstallation,
+  OPENCLAW_PROVIDER_ID,
+  OPENCLAW_PROVIDER_NAME,
+  resolveOpenClawStateDir,
+} from '@/lib/providers/openclaw-paths';
 import type {
   AIProvider,
   DateRange,
@@ -77,12 +84,12 @@ interface ParsedClawdbotSession {
 }
 
 /**
- * Clawdbot/OpenClaw Provider Implementation
- * Handles parsing and monitoring Clawdbot agent sessions
+ * OpenClaw provider implementation
+ * Handles parsing and monitoring OpenClaw agent sessions, with legacy ClawDBot path support.
  */
 export class ClawdbotProvider implements AIProvider {
-  id = 'clawdbot';
-  name = 'Clawdbot / OpenClaw';
+  id = OPENCLAW_PROVIDER_ID;
+  name = OPENCLAW_PROVIDER_NAME;
   icon = '/icons/clawdbot.svg';
 
   private configPath: string;
@@ -94,14 +101,14 @@ export class ClawdbotProvider implements AIProvider {
 
   async initialize(): Promise<void> {
     if (!fs.existsSync(this.configPath)) {
-      console.log(`Clawdbot config not found: ${this.configPath}`);
+      console.log(`OpenClaw config not found: ${this.configPath}`);
       return;
     }
-    console.log(`✓ Clawdbot provider initialized (${this.configPath})`);
+    console.log(`✓ OpenClaw provider initialized (${this.configPath})`);
   }
 
   async detectInstallation(): Promise<boolean> {
-    return fs.existsSync(this.configPath);
+    return fs.existsSync(this.configPath) || detectOpenClawInstallation(os.homedir());
   }
 
   getConfigPath(): string {
@@ -109,8 +116,7 @@ export class ClawdbotProvider implements AIProvider {
   }
 
   private getDefaultConfigPath(): string {
-    const home = os.homedir();
-    return path.join(home, '.clawdbot');
+    return resolveOpenClawStateDir(os.homedir());
   }
 
   /**
@@ -155,7 +161,7 @@ export class ClawdbotProvider implements AIProvider {
   }
 
   /**
-   * Parse a Clawdbot session file
+   * Parse an OpenClaw session file
    */
   async parseSessionFile(filePath: string): Promise<ParsedClawdbotSession> {
     const content = await fs.promises.readFile(filePath, 'utf-8');
@@ -266,7 +272,7 @@ export class ClawdbotProvider implements AIProvider {
     agent: string
   ): Promise<string> {
     const projectInfo = this.extractProjectInfo(parsed, agent);
-    const sessionId = `clawdbot-${agent}-${parsed.id}`;
+    const sessionId = buildOpenClawSessionId(agent, parsed.id);
 
     // Get file modification time
     const fileStats = await fs.promises.stat(filePath);
@@ -468,7 +474,7 @@ export class ClawdbotProvider implements AIProvider {
     try {
       syncStatusManager.updateSync(trackingId, {
         phase: 'scanning',
-        currentStep: 'Scanning Clawdbot sessions...',
+        currentStep: 'Scanning OpenClaw sessions...',
       });
 
       const sessionFiles = await this.scanSessionFiles();
@@ -480,7 +486,7 @@ export class ClawdbotProvider implements AIProvider {
       syncStatusManager.addLog(
         trackingId,
         'info',
-        `Found ${sessionFiles.length} Clawdbot session files`
+        `Found ${sessionFiles.length} OpenClaw session files`
       );
 
       let processed = 0;
@@ -531,7 +537,7 @@ export class ClawdbotProvider implements AIProvider {
       syncStatusManager.addLog(
         trackingId,
         'info',
-        `Clawdbot sync complete: ${processed} processed, ${errors} errors`
+        `OpenClaw sync complete: ${processed} processed, ${errors} errors`
       );
 
       if (!syncId) {
@@ -543,7 +549,7 @@ export class ClawdbotProvider implements AIProvider {
       syncStatusManager.addLog(
         trackingId,
         'error',
-        `Clawdbot sync failed: ${error instanceof Error ? error.message : String(error)}`
+        `OpenClaw sync failed: ${error instanceof Error ? error.message : String(error)}`
       );
       if (!syncId) {
         syncStatusManager.completeSync(trackingId, 'error');

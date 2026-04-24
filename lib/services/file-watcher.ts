@@ -1,5 +1,6 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+import { buildOpenClawSessionId, resolveOpenClawStateDir } from '@/lib/providers/openclaw-paths';
 import { eventBus } from './event-bus';
 import { formatMessageAsTerminal } from './message-formatter';
 
@@ -31,11 +32,11 @@ export class FileWatcherService {
       scanFunc: this.scanClaudeDir.bind(this),
     });
 
-    // Clawdbot/OpenClaw sessions
+    // OpenClaw sessions (with legacy ClawDBot state-dir fallback)
     this.watchPaths.push({
-      path: join(homeDir, '.clawdbot', 'agents').replace(/\\/g, '/'),
+      path: join(resolveOpenClawStateDir(homeDir), 'agents').replace(/\\/g, '/'),
       provider: 'clawdbot',
-      scanFunc: this.scanClawdbotDir.bind(this),
+      scanFunc: this.scanOpenClawDir.bind(this),
     });
   }
 
@@ -119,8 +120,8 @@ export class FileWatcherService {
     return files;
   }
 
-  // Scan Clawdbot agent session directories
-  private async scanClawdbotDir(basePath: string): Promise<string[]> {
+  // Scan OpenClaw agent session directories
+  private async scanOpenClawDir(basePath: string): Promise<string[]> {
     const files: string[] = [];
     const agentDirs = await readdir(basePath.replace(/\//g, '\\'));
 
@@ -289,13 +290,13 @@ export class FileWatcherService {
     if (!filename) return null;
     const baseId = filename.replace(/\.jsonl$/, '');
 
-    // Prefix with provider for clawdbot to differentiate
+    // Prefix with provider for OpenClaw to differentiate
     if (provider === 'clawdbot') {
-      // Extract agent name from path (e.g., .clawdbot/agents/main/sessions/xxx.jsonl -> main)
+      // Extract agent name from path (e.g., .openclaw/agents/main/sessions/xxx.jsonl -> main)
       const parts = filePath.split('/');
       const agentsIdx = parts.indexOf('agents');
       const agent = agentsIdx >= 0 && parts[agentsIdx + 1] ? parts[agentsIdx + 1] : 'unknown';
-      return `clawdbot-${agent}-${baseId}`;
+      return buildOpenClawSessionId(agent, baseId);
     }
 
     return baseId;

@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/lib/db/client';
 import { messages, providers, sessions } from '@/lib/db/schema';
 import { ClawdbotProvider } from '@/lib/providers/clawdbot';
+import { buildOpenClawSessionId, OPENCLAW_PROVIDER_NAME } from '@/lib/providers/openclaw-paths';
 import { type SyncProgress, syncStatusManager } from '@/lib/services/sync-status';
 import type { SessionEvent } from '@/types';
 
@@ -101,8 +102,8 @@ describe('ClawdbotProvider', () => {
   let sessionFilePath: string;
 
   beforeEach(async () => {
-    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'clawdbot-provider-'));
-    configDir = path.join(tempRoot, '.clawdbot');
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'openclaw-provider-'));
+    configDir = path.join(tempRoot, '.openclaw');
     provider = new ClawdbotProvider(configDir);
     sessionFilePath = createSessionFile(configDir, 'agent-alpha', 'test-session-001');
 
@@ -110,7 +111,7 @@ describe('ClawdbotProvider', () => {
       .insert(providers)
       .values({
         id: 'clawdbot',
-        name: 'Clawdbot / OpenClaw',
+        name: OPENCLAW_PROVIDER_NAME,
         configPath: configDir,
       })
       .onConflictDoNothing();
@@ -119,8 +120,8 @@ describe('ClawdbotProvider', () => {
   });
 
   afterEach(async () => {
-    await cleanupSession('clawdbot-agent-alpha-test-session-001');
-    await cleanupSession('clawdbot-agent-beta-test-session-002');
+    await cleanupSession(buildOpenClawSessionId('agent-alpha', 'test-session-001'));
+    await cleanupSession(buildOpenClawSessionId('agent-beta', 'test-session-002'));
     fs.rmSync(tempRoot, { recursive: true, force: true });
     vi.restoreAllMocks();
     resetSyncStatusState();
@@ -132,7 +133,7 @@ describe('ClawdbotProvider', () => {
     expect(provider.getConfigPath()).toBe(configDir);
   });
 
-  it('parses Clawdbot session files, including tool calls and usage totals', async () => {
+  it('parses OpenClaw session files, including tool calls and usage totals', async () => {
     const parsed = await provider.parseSessionFile(sessionFilePath);
 
     expect(parsed.id).toBe('test-session-001');
@@ -167,7 +168,7 @@ describe('ClawdbotProvider', () => {
     const parsed = await provider.parseSessionFile(sessionFilePath);
     const sessionId = await provider.ingestSession(sessionFilePath, parsed, 'agent-alpha');
 
-    expect(sessionId).toBe('clawdbot-agent-alpha-test-session-001');
+    expect(sessionId).toBe(buildOpenClawSessionId('agent-alpha', 'test-session-001'));
 
     const storedSession = await db
       .select()
@@ -240,7 +241,7 @@ describe('ClawdbotProvider', () => {
     const storedSessions = await db
       .select()
       .from(sessions)
-      .where(eq(sessions.id, 'clawdbot-agent-alpha-test-session-001'));
+      .where(eq(sessions.id, buildOpenClawSessionId('agent-alpha', 'test-session-001')));
 
     expect(storedSessions).toHaveLength(1);
     expect(storedSessions[0].messageCount).toBe(4);

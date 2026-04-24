@@ -1,6 +1,7 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { type NextRequest, NextResponse } from 'next/server';
+import { getOpenClawAgentsPaths } from '@/lib/providers/openclaw-paths';
 import { formatMessageAsTerminal } from '@/lib/services/message-formatter';
 
 async function findSessionFile(sessionId: string): Promise<string | null> {
@@ -13,10 +14,10 @@ async function findSessionFile(sessionId: string): Promise<string | null> {
     /*turbopackIgnore: true*/ process.env.USERPROFILE ||
     '';
 
-  // Search locations: Claude projects + Clawdbot agents
+  // Search locations: Claude projects + OpenClaw agents (including legacy ClawDBot state dir)
   const searchPaths: Array<{ base: string; pattern: 'flat' | 'nested' }> = [
     { base: join(homeDir, '.claude', 'projects'), pattern: 'flat' },
-    { base: join(homeDir, '.clawdbot', 'agents'), pattern: 'nested' },
+    ...getOpenClawAgentsPaths(homeDir).map((base) => ({ base, pattern: 'nested' as const })),
   ];
 
   for (const { base, pattern } of searchPaths) {
@@ -26,7 +27,7 @@ async function findSessionFile(sessionId: string): Promise<string | null> {
       for (const dir of dirs) {
         let searchDir = join(base, dir);
 
-        // For Clawdbot: agents/{agentId}/sessions/
+        // For OpenClaw: agents/{agentId}/sessions/
         if (pattern === 'nested') {
           searchDir = join(searchDir, 'sessions');
           try {

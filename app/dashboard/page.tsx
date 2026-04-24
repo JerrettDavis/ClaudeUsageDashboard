@@ -1,5 +1,6 @@
 'use client';
 
+import { keepPreviousData } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Activity,
@@ -28,15 +29,19 @@ export default function DashboardPage() {
     []
   );
 
-  const { data: sessions, isLoading } = trpc.sessions.list.useQuery({ limit: 8 });
-  const { data: stats } = trpc.analytics.usageStats.useQuery(analyticsRange);
-  const { data: overview } = trpc.analytics.overview.useQuery(analyticsRange);
+  const { data: sessions, isLoading: sessionsLoading } = trpc.sessions.list.useQuery(
+    { limit: 8 },
+    { placeholderData: keepPreviousData }
+  );
+  const { data: summary, isLoading: summaryLoading } = trpc.analytics.summary.useQuery(
+    analyticsRange,
+    { placeholderData: keepPreviousData }
+  );
 
   const syncMutation = trpc.sync.syncProvider.useMutation({
     onSuccess: () => {
       utils.sessions.list.invalidate();
-      utils.analytics.usageStats.invalidate();
-      utils.analytics.overview.invalidate();
+      utils.analytics.summary.invalidate();
       setIsSyncing(false);
     },
     onError: () => {
@@ -48,19 +53,6 @@ export default function DashboardPage() {
     setIsSyncing(true);
     syncMutation.mutate({ providerId: 'claude' });
   };
-
-  if (isLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-[calc(100vh-3.5rem)]">
-          <div className="flex items-center gap-3">
-            <Terminal className="h-6 w-6 text-cyan-400 animate-pulse" />
-            <span className="text-zinc-500 font-mono">LOADING SYSTEMS...</span>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
 
   const sessionsList = sessions || [];
 
@@ -81,32 +73,38 @@ export default function DashboardPage() {
               <MetricItem
                 icon={<Terminal className="h-4 w-4 text-cyan-400" />}
                 label="Total Sessions"
-                value={stats?.totalSessions || 0}
+                value={summary?.totalSessions || 0}
+                loading={summaryLoading && !summary}
               />
               <MetricItem
                 icon={<BarChart3 className="h-4 w-4 text-emerald-400" />}
                 label="Active Projects"
-                value={overview?.activeProjects || 0}
+                value={summary?.activeProjects || 0}
+                loading={summaryLoading && !summary}
               />
               <MetricItem
                 icon={<Zap className="h-4 w-4 text-amber-400" />}
                 label="Completion Rate"
-                value={`${(overview?.completionRate || 0).toFixed(1)}%`}
+                value={`${(summary?.completionRate || 0).toFixed(1)}%`}
+                loading={summaryLoading && !summary}
               />
               <MetricItem
                 icon={<DollarSign className="h-4 w-4 text-rose-400" />}
                 label="Cost (Est)"
-                value={`$${(stats?.estimatedCost || 0).toFixed(4)}`}
+                value={`$${(summary?.estimatedCost || 0).toFixed(4)}`}
+                loading={summaryLoading && !summary}
               />
               <MetricItem
                 icon={<FileText className="h-4 w-4 text-blue-400" />}
                 label="Avg Tokens"
-                value={(overview?.averageTokensPerSession || 0).toLocaleString()}
+                value={(summary?.averageTokensPerSession || 0).toLocaleString()}
+                loading={summaryLoading && !summary}
               />
               <MetricItem
                 icon={<Clock className="h-4 w-4 text-violet-400" />}
                 label="Avg Session"
-                value={formatDurationMinutes(overview?.averageSessionDurationMinutes)}
+                value={formatDurationMinutes(summary?.averageSessionDurationMinutes)}
+                loading={summaryLoading && !summary}
               />
             </div>
           </div>
@@ -155,26 +153,33 @@ export default function DashboardPage() {
               </h2>
             </div>
             <div className="p-4 space-y-2">
-              {sessionsList.slice(0, 5).map((session) => (
-                <Link
-                  key={session.id}
-                  href={`/sessions/${session.id}`}
-                  className="block p-2 rounded border border-zinc-800 hover:border-cyan-500/30 hover:bg-zinc-800/50 transition-all group"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <StatusBadge status={session.status} />
-                      <span className="text-xs text-zinc-300 font-mono truncate group-hover:text-cyan-400">
-                        {session.projectName}
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-zinc-600 font-mono shrink-0">
-                      {formatDistanceToNow(new Date(session.startTime))}
-                    </span>
-                  </div>
-                </Link>
-              ))}
-              {sessionsList.length === 0 && (
+              {sessionsLoading && sessionsList.length === 0
+                ? ['recent-a', 'recent-b', 'recent-c', 'recent-d'].map((placeholderId) => (
+                    <div
+                      key={placeholderId}
+                      className="h-10 animate-pulse border border-zinc-800 bg-zinc-800/40"
+                    />
+                  ))
+                : sessionsList.slice(0, 5).map((session) => (
+                    <Link
+                      key={session.id}
+                      href={`/sessions/${session.id}`}
+                      className="block p-2 rounded border border-zinc-800 hover:border-cyan-500/30 hover:bg-zinc-800/50 transition-all group"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <StatusBadge status={session.status} />
+                          <span className="text-xs text-zinc-300 font-mono truncate group-hover:text-cyan-400">
+                            {session.projectName}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-zinc-600 font-mono shrink-0">
+                          {formatDistanceToNow(new Date(session.startTime))}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+              {!sessionsLoading && sessionsList.length === 0 && (
                 <p className="text-xs text-zinc-600 font-mono text-center py-4">No sessions yet</p>
               )}
             </div>
@@ -205,35 +210,47 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="font-mono text-xs">
-                {sessionsList.map((session) => (
-                  <tr
-                    key={session.id}
-                    className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors"
-                  >
-                    <td className="px-4 py-3">
-                      <StatusBadge status={session.status} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/sessions/${session.id}`}
-                        className="text-zinc-300 hover:text-cyan-400 transition-colors"
+                {sessionsLoading && sessionsList.length === 0
+                  ? ['row-a', 'row-b', 'row-c', 'row-d'].map((placeholderId) => (
+                      <tr key={placeholderId} className="border-b border-zinc-800/50">
+                        <td colSpan={6} className="px-4 py-3">
+                          <div className="h-8 animate-pulse bg-zinc-800/40" />
+                        </td>
+                      </tr>
+                    ))
+                  : sessionsList.map((session) => (
+                      <tr
+                        key={session.id}
+                        className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors"
                       >
-                        {session.projectName}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-zinc-500">
-                      {new Date(session.startTime).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-right text-zinc-400">{session.messageCount}</td>
-                    <td className="px-4 py-3 text-right text-zinc-400">
-                      {((session.tokensInput || 0) + (session.tokensOutput || 0)).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-right text-emerald-400">
-                      ${(session.estimatedCost || 0).toFixed(4)}
-                    </td>
-                  </tr>
-                ))}
-                {sessionsList.length === 0 && (
+                        <td className="px-4 py-3">
+                          <StatusBadge status={session.status} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <Link
+                            href={`/sessions/${session.id}`}
+                            className="text-zinc-300 hover:text-cyan-400 transition-colors"
+                          >
+                            {session.projectName}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 text-zinc-500">
+                          {new Date(session.startTime).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-right text-zinc-400">
+                          {session.messageCount}
+                        </td>
+                        <td className="px-4 py-3 text-right text-zinc-400">
+                          {(
+                            (session.tokensInput || 0) + (session.tokensOutput || 0)
+                          ).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-right text-emerald-400">
+                          ${(session.estimatedCost || 0).toFixed(4)}
+                        </td>
+                      </tr>
+                    ))}
+                {!sessionsLoading && sessionsList.length === 0 && (
                   <tr>
                     <td
                       colSpan={6}
@@ -256,10 +273,12 @@ function MetricItem({
   icon,
   label,
   value,
+  loading = false,
 }: {
   icon: ReactNode;
   label: string;
   value: string | number;
+  loading?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between">
@@ -267,7 +286,11 @@ function MetricItem({
         {icon}
         <span className="text-xs text-zinc-500 font-mono">{label}</span>
       </div>
-      <span className="text-sm font-semibold text-zinc-300 font-mono">{value}</span>
+      {loading ? (
+        <span className="h-4 w-20 animate-pulse bg-zinc-800/50" />
+      ) : (
+        <span className="text-sm font-semibold text-zinc-300 font-mono">{value}</span>
+      )}
     </div>
   );
 }

@@ -7,6 +7,8 @@ export async function register() {
     const path = await import('node:path');
     const fs = await import('node:fs');
     const { eq } = await import('drizzle-orm');
+    const { detectOpenClawInstallation, OPENCLAW_PROVIDER_NAME, resolveOpenClawStateDir } =
+      await import('@/lib/providers/openclaw-paths');
 
     // Run migrations
     initializeDatabase();
@@ -29,22 +31,31 @@ export async function register() {
       console.log('✓ Claude provider registered');
     }
 
-    // Auto-register Clawdbot provider if not exists
+    // Auto-register OpenClaw provider if not exists
     const existingClawdbot = await db
       .select()
       .from(providers)
       .where(eq(providers.id, 'clawdbot'))
       .limit(1);
+    const configPath = resolveOpenClawStateDir(os.homedir());
+    const installed = detectOpenClawInstallation(os.homedir());
     if (existingClawdbot.length === 0) {
-      const configPath = path.join(os.homedir(), '.clawdbot');
-      const installed = fs.existsSync(configPath);
       await db.insert(providers).values({
         id: 'clawdbot',
-        name: 'Clawdbot / OpenClaw',
+        name: OPENCLAW_PROVIDER_NAME,
         configPath: configPath,
         installed: installed,
       });
-      console.log('✓ Clawdbot provider registered');
+      console.log('✓ OpenClaw provider registered');
+    } else {
+      await db
+        .update(providers)
+        .set({
+          name: OPENCLAW_PROVIDER_NAME,
+          configPath,
+          installed,
+        })
+        .where(eq(providers.id, 'clawdbot'));
     }
   }
 }

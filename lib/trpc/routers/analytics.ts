@@ -32,6 +32,27 @@ type SessionRow = {
 };
 
 export const analyticsRouter = router({
+  summary: publicProcedure.input(analyticsRangeSchema).query(async ({ input }) => {
+    const where = buildAnalyticsWhere(input);
+    const [sessionRows, toolStats] = await Promise.all([
+      fetchSessionRows(where),
+      db
+        .select({
+          toolName: toolCalls.toolName,
+          count: sql<number>`count(*)`,
+        })
+        .from(toolCalls)
+        .innerJoin(messages, eq(toolCalls.messageId, messages.id))
+        .innerJoin(sessions, eq(messages.sessionId, sessions.id))
+        .where(where)
+        .groupBy(toolCalls.toolName)
+        .orderBy(desc(sql`count(*)`))
+        .limit(1),
+    ]);
+
+    return buildSummary(sessionRows, toolStats[0]);
+  }),
+
   usageStats: publicProcedure.input(analyticsRangeSchema).query(async ({ input }) => {
     const where = buildAnalyticsWhere(input);
 
@@ -101,76 +122,7 @@ export const analyticsRouter = router({
         .limit(1),
     ]);
 
-    const totalSessions = sessionRows.length;
-    const completedSessions = sessionRows.filter(
-      (session) => session.status === 'completed'
-    ).length;
-    const activeSessions = sessionRows.filter((session) => session.status === 'active').length;
-    const errorSessions = sessionRows.filter((session) => session.status === 'error').length;
-    const totalMessages = sessionRows.reduce(
-      (sum, session) => sum + Number(session.messageCount || 0),
-      0
-    );
-    const totalTokens = sessionRows.reduce(
-      (sum, session) => sum + Number(session.tokensInput || 0) + Number(session.tokensOutput || 0),
-      0
-    );
-    const totalToolCalls = sessionRows.reduce(
-      (sum, session) => sum + Number(session.toolUsageCount || 0),
-      0
-    );
-    const activeProjects = new Set(sessionRows.map((session) => session.projectPath)).size;
-    const totalActiveMinutes = sumSessionMinutes(sessionRows);
-    const hourlyCounts = buildHourlyCounts(sessionRows);
-    const dailyCounts = buildDailyCounts(sessionRows);
-    const topTool = toolStats[0]
-      ? {
-          name: toolStats[0].toolName,
-          count: Number(toolStats[0].count),
-        }
-      : null;
-
-    const busiestDayEntry = [...dailyCounts.entries()].sort((a, b) => b[1] - a[1])[0];
-    const busiestProjectEntry = [
-      ...countValues(sessionRows.map((session) => session.projectName)).entries(),
-    ].sort((a, b) => b[1] - a[1])[0];
-
-    return {
-      totalSessions,
-      completedSessions,
-      activeSessions,
-      errorSessions,
-      activeProjects,
-      completionRate: totalSessions > 0 ? roundTo((completedSessions / totalSessions) * 100, 1) : 0,
-      errorRate: totalSessions > 0 ? roundTo((errorSessions / totalSessions) * 100, 1) : 0,
-      averageMessagesPerSession: totalSessions > 0 ? roundTo(totalMessages / totalSessions, 1) : 0,
-      averageTokensPerSession: totalSessions > 0 ? Math.round(totalTokens / totalSessions) : 0,
-      averageToolCallsPerSession:
-        totalSessions > 0 ? roundTo(totalToolCalls / totalSessions, 1) : 0,
-      averageSessionDurationMinutes:
-        completedSessions > 0
-          ? roundTo(
-              sumSessionMinutes(sessionRows.filter((session) => session.status === 'completed')) /
-                completedSessions,
-              1
-            )
-          : 0,
-      totalActiveMinutes: Math.round(totalActiveMinutes),
-      mostActiveHour: pickBusiestHour(hourlyCounts),
-      busiestDay: busiestDayEntry
-        ? {
-            date: busiestDayEntry[0],
-            sessions: busiestDayEntry[1],
-          }
-        : null,
-      busiestProject: busiestProjectEntry
-        ? {
-            projectName: busiestProjectEntry[0],
-            sessions: busiestProjectEntry[1],
-          }
-        : null,
-      topTool,
-    };
+    return buildSummary(sessionRows, toolStats[0]);
   }),
 
   dailyBreakdown: publicProcedure.input(analyticsRangeSchema).query(async ({ input }) => {
@@ -334,6 +286,85 @@ function fetchSessionRows(where: AnalyticsWhere) {
     })
     .from(sessions)
     .where(where);
+}
+
+function buildSummary(
+  sessionRows: SessionRow[],
+  topToolRow?: { toolName: string; count: number } | undefined
+) {
+  const totalSessions = sessionRows.length;
+  const completedSessions = sessionRows.filter((session) => session.status === 'completed').length;
+  const activeSessions = sessionRows.filter((session) => session.status === 'active').length;
+  const errorSessions = sessionRows.filter((session) => session.status === 'error').length;
+  const totalMessages = sessionRows.reduce(
+    (sum, session) => sum + Number(session.messageCount || 0),
+    0
+  );
+  const totalTokens = sessionRows.reduce(
+    (sum, session) => sum + Number(session.tokensInput || 0) + Number(session.tokensOutput || 0),
+    0
+  );
+  const totalToolCalls = sessionRows.reduce(
+    (sum, session) => sum + Number(session.toolUsageCount || 0),
+    0
+  );
+  const totalCost = sessionRows.reduce(
+    (sum, session) => sum + Number(session.estimatedCost || 0),
+    0
+  );
+  const activeProjects = new Set(sessionRows.map((session) => session.projectPath)).size;
+  const totalActiveMinutes = sumSessionMinutes(sessionRows);
+  const hourlyCounts = buildHourlyCounts(sessionRows);
+  const dailyCounts = buildDailyCounts(sessionRows);
+  const topTool = topToolRow
+    ? {
+        name: topToolRow.toolName,
+        count: Number(topToolRow.count),
+      }
+    : null;
+
+  const busiestDayEntry = [...dailyCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+  const busiestProjectEntry = [
+    ...countValues(sessionRows.map((session) => session.projectName)).entries(),
+  ].sort((a, b) => b[1] - a[1])[0];
+
+  return {
+    totalSessions,
+    completedSessions,
+    activeSessions,
+    errorSessions,
+    activeProjects,
+    totalTokens,
+    estimatedCost: roundTo(totalCost, 4),
+    completionRate: totalSessions > 0 ? roundTo((completedSessions / totalSessions) * 100, 1) : 0,
+    errorRate: totalSessions > 0 ? roundTo((errorSessions / totalSessions) * 100, 1) : 0,
+    averageMessagesPerSession: totalSessions > 0 ? roundTo(totalMessages / totalSessions, 1) : 0,
+    averageTokensPerSession: totalSessions > 0 ? Math.round(totalTokens / totalSessions) : 0,
+    averageToolCallsPerSession: totalSessions > 0 ? roundTo(totalToolCalls / totalSessions, 1) : 0,
+    averageSessionDurationMinutes:
+      completedSessions > 0
+        ? roundTo(
+            sumSessionMinutes(sessionRows.filter((session) => session.status === 'completed')) /
+              completedSessions,
+            1
+          )
+        : 0,
+    totalActiveMinutes: Math.round(totalActiveMinutes),
+    mostActiveHour: pickBusiestHour(hourlyCounts),
+    busiestDay: busiestDayEntry
+      ? {
+          date: busiestDayEntry[0],
+          sessions: busiestDayEntry[1],
+        }
+      : null,
+    busiestProject: busiestProjectEntry
+      ? {
+          projectName: busiestProjectEntry[0],
+          sessions: busiestProjectEntry[1],
+        }
+      : null,
+    topTool,
+  };
 }
 
 function sumSessionMinutes(sessionRows: SessionRow[]) {
