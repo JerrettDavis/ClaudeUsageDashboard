@@ -60,8 +60,8 @@ describe('analytics router', () => {
         tokensOutput: 150,
         estimatedCost: 0.01,
         toolUsageCount: 1,
-        filesModified: JSON.stringify(['README.md']),
-        foldersAccessed: JSON.stringify(['docs']),
+        filesModified: JSON.stringify({ path: 'README.md' }),
+        foldersAccessed: '{invalid-json',
       },
       {
         id: sessionIds[2],
@@ -237,5 +237,76 @@ describe('analytics router', () => {
       tokens: 670,
       cost: 0.035,
     });
+  });
+
+  it('returns empty analytics states for unmatched provider filters and preserves hourly shape', async () => {
+    const range = {
+      providerId: 'missing-provider',
+      startDate: new Date('2026-02-01T00:00:00.000Z'),
+      endDate: new Date('2026-02-04T00:00:00.000Z'),
+    };
+
+    const [
+      summary,
+      overview,
+      usageStats,
+      dailyBreakdown,
+      statusBreakdown,
+      toolBreakdown,
+      activityByHour,
+      hotspots,
+      topProjects,
+    ] = await Promise.all([
+      caller.analytics.summary(range),
+      caller.analytics.overview(range),
+      caller.analytics.usageStats(range),
+      caller.analytics.dailyBreakdown(range),
+      caller.analytics.statusBreakdown(range),
+      caller.analytics.toolBreakdown(range),
+      caller.analytics.activityByHour(range),
+      caller.analytics.hotspots({ ...range, limit: 3 }),
+      caller.analytics.topProjects({ ...range, limit: 3 }),
+    ]);
+
+    expect(summary).toMatchObject({
+      totalSessions: 0,
+      completedSessions: 0,
+      activeSessions: 0,
+      errorSessions: 0,
+      activeProjects: 0,
+      totalTokens: 0,
+      estimatedCost: 0,
+      completionRate: 0,
+      errorRate: 0,
+      averageMessagesPerSession: 0,
+      averageTokensPerSession: 0,
+      averageToolCallsPerSession: 0,
+      averageSessionDurationMinutes: 0,
+      totalActiveMinutes: 0,
+      mostActiveHour: null,
+      busiestDay: null,
+      busiestProject: null,
+      topTool: null,
+    });
+    expect(overview).toEqual(summary);
+    expect(usageStats).toMatchObject({
+      totalSessions: 0,
+      totalTokensInput: 0,
+      totalTokensOutput: 0,
+      totalTokens: 0,
+      estimatedCost: 0,
+      activeTime: 0,
+      toolUsageBreakdown: {},
+    });
+    expect(dailyBreakdown).toEqual([]);
+    expect(statusBreakdown).toEqual([]);
+    expect(toolBreakdown).toEqual([]);
+    expect(activityByHour).toHaveLength(24);
+    expect(activityByHour.every((entry) => entry.sessions === 0)).toBe(true);
+    expect(hotspots).toEqual({
+      topFiles: [],
+      topFolders: [],
+    });
+    expect(topProjects).toEqual([]);
   });
 });

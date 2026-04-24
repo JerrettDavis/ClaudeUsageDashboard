@@ -94,4 +94,16 @@ describe('syncStatusManager', () => {
     expect(latest?.id).toBe(activeId);
     expect(latest?.status).toBe('running');
   });
+
+  it('ignores updates for unknown sync ids and returns undefined when no provider history exists', () => {
+    expect(() => {
+      syncStatusManager.updateSync('missing-sync', { phase: 'parsing' });
+      syncStatusManager.addLog('missing-sync', 'info', 'ignored');
+      syncStatusManager.addError('missing-sync', 'missing.jsonl', 'ignored');
+      syncStatusManager.completeSync('missing-sync', 'error');
+    }).not.toThrow();
+
+    expect(syncStatusManager.getSync('missing-sync')).toBeUndefined();
+    expect(syncStatusManager.getLatestSync('missing-provider')).toBeUndefined();
+  });
 });
