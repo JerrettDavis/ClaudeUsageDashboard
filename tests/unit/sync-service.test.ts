@@ -91,6 +91,27 @@ describe('SyncService', () => {
     expect(mocks.mockUpdate).not.toHaveBeenCalled();
   });
 
+  it('returns a failed result when a provider lacks fullSync support', async () => {
+    const provider = {
+      id: 'custom',
+      detectInstallation: vi.fn().mockResolvedValue(true),
+      initialize: vi.fn().mockResolvedValue(undefined),
+    };
+
+    mocks.mockGet.mockReturnValue(provider);
+
+    const result = await service.syncProvider('custom');
+
+    expect(result).toMatchObject({
+      providerId: 'custom',
+      success: false,
+      sessionsProcessed: 0,
+      errors: 1,
+    });
+    expect(provider.initialize).toHaveBeenCalledOnce();
+    expect(mocks.mockUpdate).not.toHaveBeenCalled();
+  });
+
   it('syncs all providers and records hard failures per provider', async () => {
     const claudeProvider = {
       id: 'claude',

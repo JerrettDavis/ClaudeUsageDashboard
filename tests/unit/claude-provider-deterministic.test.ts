@@ -39,6 +39,10 @@ interface ClaudeProviderState {
   watchers: Set<(event: SessionEvent) => void>;
 }
 
+interface ClaudeScanState {
+  scanSessionFiles: () => Promise<string[]>;
+}
+
 function createParsedSessionFixture(sessionId: string): ParsedSession {
   const userMessageId = `${sessionId}-msg-001`;
   const assistantMessageId = `${sessionId}-msg-002`;
@@ -134,6 +138,7 @@ describe('ClaudeProvider (deterministic)', () => {
   afterEach(async () => {
     await cleanupSession('test-session-001');
     await cleanupSession('test-session-002');
+    await cleanupSession('test-session-003');
     fs.rmSync(tempRoot, { recursive: true, force: true });
     resetSyncStatusState();
   });
@@ -168,6 +173,22 @@ describe('ClaudeProvider (deterministic)', () => {
     await expect(provider.parseSessionFile(sessionFilePath)).rejects.toThrow(
       'Parser pool not initialized'
     );
+  });
+
+  it('scans only project directories and JSONL session files', async () => {
+    const projectsDir = path.join(configDir, 'projects');
+    fs.writeFileSync(path.join(projectsDir, 'root-note.txt'), 'ignore me');
+    const projectDir = path.join(projectsDir, 'C--git-mixed-project');
+    fs.mkdirSync(projectDir, { recursive: true });
+    fs.writeFileSync(path.join(projectDir, 'notes.txt'), 'not a session');
+    const nestedSession = path.join(projectDir, 'test-session-003.jsonl');
+    fs.writeFileSync(nestedSession, '{"type":"summary","summary":"ok"}\n');
+
+    const scannedFiles = await (provider as unknown as ClaudeScanState).scanSessionFiles();
+
+    expect(scannedFiles).toEqual(expect.arrayContaining([sessionFilePath, nestedSession]));
+    expect(scannedFiles.some((filePath) => filePath.endsWith('notes.txt'))).toBe(false);
+    expect(scannedFiles.some((filePath) => filePath.endsWith('root-note.txt'))).toBe(false);
   });
 
   it('parses session files through the worker pool and can ingest/query them', async () => {
@@ -219,6 +240,34 @@ describe('ClaudeProvider (deterministic)', () => {
     expect(detailedSession.messages).toHaveLength(2);
     expect(detailedSession.fileSnapshots).toEqual([]);
     expect(detailedSession.errors).toEqual([]);
+  });
+
+  it('supports status filtering, missing session errors, and empty fullSync scans', async () => {
+    await provider.initialize();
+
+    const parsed = await provider.parseSessionFile(sessionFilePath);
+    const sessionId = await provider.ingestSession(sessionFilePath, parsed);
+
+    const filteredSessions = await provider.listSessions({
+      status: 'active',
+    });
+    expect(filteredSessions.map((session) => session.id)).toContain(sessionId);
+
+    await expect(provider.getSession('missing-session')).rejects.toThrow(
+      'Session not found: missing-session'
+    );
+
+    const emptyRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-provider-empty-'));
+    const emptyConfigDir = path.join(emptyRoot, '.claude');
+    fs.mkdirSync(emptyConfigDir, { recursive: true });
+    const emptyProvider = new ClaudeProvider(emptyConfigDir);
+    try {
+      await emptyProvider.initialize();
+      await expect(emptyProvider.fullSync()).resolves.toEqual({ processed: 0, errors: 0 });
+    } finally {
+      await emptyProvider.terminate();
+      fs.rmSync(emptyRoot, { recursive: true, force: true });
+    }
   });
 
   it('supports watcher disposal and utility methods', async () => {
@@ -314,6 +363,71 @@ describe('ClaudeProvider (deterministic)', () => {
     expect(storedMessages).toHaveLength(3);
   });
 
+  it('ingests sessions without metadata or usage details using fallback summary and token logic', async () => {
+    await provider.initialize();
+    const fallbackSessionPath = createSessionFile(
+      configDir,
+      'C--git-demo-project',
+      'test-session-003'
+    );
+    const staleTime = new Date('2024-01-01T00:00:00.000Z');
+    fs.utimesSync(fallbackSessionPath, staleTime, staleTime);
+    const parsed: ParsedSession = {
+      messages: [
+        {
+          uuid: 'msg-user-fallback',
+          sessionId: 'test-session-003',
+          type: 'user',
+          timestamp: '2024-01-15T11:00:00.000Z',
+          content: 'short prompt',
+          tokens: 3,
+        },
+        {
+          uuid: 'msg-assistant-fallback',
+          parentUuid: 'msg-user-fallback',
+          sessionId: 'test-session-003',
+          type: 'assistant',
+          timestamp: '2024-01-15T11:00:03.000Z',
+          content: { done: true },
+          tokens: 0,
+        },
+      ],
+      summary: {
+        summary: 'Fallback summary only',
+      },
+      summaries: [],
+      fileSnapshots: [],
+      toolCalls: [],
+    };
+
+    const sessionId = await provider.ingestSession(fallbackSessionPath, parsed);
+    const storedSession = await db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .limit(1);
+    const storedMessages = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.sessionId, sessionId));
+
+    expect(storedSession[0]).toMatchObject({
+      status: 'completed',
+      cwd: null,
+      gitBranch: null,
+      version: null,
+      lastSummary: 'Fallback summary only',
+      fileCount: 0,
+      toolUsageCount: 0,
+      tokensInput: 3,
+      tokensOutput: 0,
+    });
+    expect(storedMessages).toHaveLength(2);
+    expect(storedMessages.find((message) => message.id === 'msg-assistant-fallback')?.tokens).toBe(
+      0
+    );
+  });
+
   it('fullSync scans, parses, ingests, and records completion state', async () => {
     createSessionFile(configDir, 'C--git-demo-project', 'test-session-002');
     await provider.initialize();
@@ -328,6 +442,26 @@ describe('ClaudeProvider (deterministic)', () => {
       processedFiles: 2,
       successCount: 2,
     });
+  });
+
+  it('logs intermediate progress every 10 processed sessions', async () => {
+    for (let index = 2; index <= 10; index++) {
+      createSessionFile(
+        configDir,
+        'C--git-demo-project',
+        `test-session-${String(index).padStart(3, '0')}`
+      );
+    }
+    await provider.initialize();
+
+    const result = await provider.fullSync();
+
+    expect(result).toEqual({ processed: 10, errors: 0 });
+    expect(
+      syncStatusManager
+        .getCompletedSyncs(1)[0]
+        ?.logs.some((entry) => entry.message.includes('Processed 10/10 sessions'))
+    ).toBe(true);
   });
 
   it('fullSync records ingestion errors and terminate tears down the worker pool', async () => {
@@ -376,6 +510,21 @@ describe('ClaudeProvider (deterministic)', () => {
         .getSync(trackingId)
         ?.logs.some((entry) => entry.message.includes('forced scan failure'))
     ).toBe(true);
+  });
+
+  it('marks internally tracked syncs as errored when fullSync fails before scanning completes', async () => {
+    await provider.initialize();
+    vi.spyOn(
+      provider as unknown as { scanSessionFiles: () => Promise<string[]> },
+      'scanSessionFiles'
+    ).mockRejectedValueOnce(new Error('forced internal scan failure'));
+
+    await expect(provider.fullSync()).rejects.toThrow('forced internal scan failure');
+
+    expect(syncStatusManager.getCompletedSyncs(1)[0]).toMatchObject({
+      providerId: 'claude',
+      status: 'error',
+    });
   });
 });
 

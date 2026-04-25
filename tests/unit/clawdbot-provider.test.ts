@@ -19,6 +19,10 @@ interface ClawdbotProviderState {
   watchers: Set<(event: SessionEvent) => void>;
 }
 
+interface ClawdbotScanState {
+  scanSessionFiles: () => Promise<Array<{ filePath: string; agent: string }>>;
+}
+
 function createSessionFileContents(sessionId: string) {
   const userMessageId = `${sessionId}-msg-user`;
   const assistantMessageId = `${sessionId}-msg-assistant`;
@@ -122,6 +126,7 @@ describe('ClawdbotProvider', () => {
   afterEach(async () => {
     await cleanupSession(buildOpenClawSessionId('agent-alpha', 'test-session-001'));
     await cleanupSession(buildOpenClawSessionId('agent-beta', 'test-session-002'));
+    await cleanupSession(buildOpenClawSessionId('agent-gamma', 'fallback-session'));
     fs.rmSync(tempRoot, { recursive: true, force: true });
     vi.restoreAllMocks();
     resetSyncStatusState();
@@ -139,6 +144,27 @@ describe('ClawdbotProvider', () => {
 
     await expect(missingProvider.initialize()).resolves.toBeUndefined();
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('OpenClaw config not found:'));
+  });
+
+  it('scans only agent session directories and jsonl files', async () => {
+    const agentsDir = path.join(configDir, 'agents');
+    fs.writeFileSync(path.join(agentsDir, 'README.txt'), 'ignore');
+    fs.mkdirSync(path.join(agentsDir, 'agent-empty'), { recursive: true });
+    const mixedSessionsDir = path.join(agentsDir, 'agent-beta', 'sessions');
+    fs.mkdirSync(mixedSessionsDir, { recursive: true });
+    fs.writeFileSync(path.join(mixedSessionsDir, 'notes.txt'), 'ignore');
+    const secondSession = path.join(mixedSessionsDir, 'test-session-002.jsonl');
+    fs.writeFileSync(secondSession, createSessionFileContents('test-session-002'));
+
+    const discovered = await (provider as unknown as ClawdbotScanState).scanSessionFiles();
+
+    expect(discovered).toEqual(
+      expect.arrayContaining([
+        { filePath: sessionFilePath, agent: 'agent-alpha' },
+        { filePath: secondSession, agent: 'agent-beta' },
+      ])
+    );
+    expect(discovered.some((entry) => entry.filePath.endsWith('notes.txt'))).toBe(false);
   });
 
   it('parses OpenClaw session files, including tool calls and usage totals', async () => {
@@ -170,6 +196,62 @@ describe('ClawdbotProvider', () => {
     expect(parsed.tokensInput).toBe(15);
     expect(parsed.tokensOutput).toBe(16);
     expect(parsed.totalCost).toBeCloseTo(0.03, 6);
+  });
+
+  it('falls back for incomplete session metadata and ingests stale sessions as completed', async () => {
+    const fallbackSessionPath = createSessionFile(configDir, 'agent-gamma', 'fallback-session');
+    fs.writeFileSync(
+      fallbackSessionPath,
+      [
+        JSON.stringify({
+          type: 'session',
+          cwd: '',
+          timestamp: '2026-01-03T00:00:00.000Z',
+        }),
+        JSON.stringify({
+          type: 'message',
+          id: 'fallback-user',
+          timestamp: '2026-01-03T00:00:01.000Z',
+          message: {
+            role: 'system',
+            content: { text: 'unexpected role' },
+          },
+        }),
+        JSON.stringify({
+          type: 'message',
+          id: 'fallback-assistant',
+          timestamp: '2026-01-03T00:00:02.000Z',
+          message: {
+            role: 'assistant',
+            content: [{ type: 'toolCall', arguments: { path: 'README.md' } }],
+          },
+        }),
+      ].join('\n')
+    );
+    const staleTime = new Date('2025-01-01T00:00:00.000Z');
+    fs.utimesSync(fallbackSessionPath, staleTime, staleTime);
+
+    const parsed = await provider.parseSessionFile(fallbackSessionPath);
+    expect(parsed.id).toBe('fallback-session');
+    expect(parsed.cwd).toBe('');
+    expect(parsed.toolCalls).toEqual([]);
+
+    const sessionId = await provider.ingestSession(fallbackSessionPath, parsed, 'agent-gamma');
+    const storedSession = await db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .limit(1);
+
+    expect(storedSession[0]).toMatchObject({
+      projectPath: 'agent-gamma',
+      projectName: 'agent-gamma',
+      status: 'completed',
+      messageCount: 2,
+      toolUsageCount: 0,
+    });
+    expect(storedSession[0].tokensInput).toBe(0);
+    expect(storedSession[0].tokensOutput).toBe(0);
   });
 
   it('ingests sessions and can query them back out of the database', async () => {
@@ -364,6 +446,21 @@ describe('ClawdbotProvider', () => {
         .getSync(trackingId)
         ?.logs.some((entry) => entry.message.includes('forced openclaw scan failure'))
     ).toBe(true);
+  });
+
+  it('marks internally tracked syncs as errored when fullSync fails before scanning completes', async () => {
+    await provider.initialize();
+    vi.spyOn(
+      provider as unknown as { scanSessionFiles: () => Promise<unknown[]> },
+      'scanSessionFiles'
+    ).mockRejectedValueOnce(new Error('forced internal openclaw scan failure'));
+
+    await expect(provider.fullSync()).rejects.toThrow('forced internal openclaw scan failure');
+
+    expect(syncStatusManager.getCompletedSyncs(1)[0]).toMatchObject({
+      providerId: 'clawdbot',
+      status: 'error',
+    });
   });
 });
 

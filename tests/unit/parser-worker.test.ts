@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { parseJSONL, parseMessage } from '@/lib/workers/parser-core';
+import { extractToolCalls, parseJSONL, parseMessage } from '@/lib/workers/parser-core';
 
 describe('parser.worker', () => {
   const tempFiles: string[] = [];
@@ -229,6 +229,94 @@ describe('parser.worker', () => {
     expect(parsed.foldersAccessed).toEqual(
       expect.arrayContaining(['src', 'C:\\git\\ClaudeUsageDashboard'])
     );
+  });
+
+  it('covers parser fallbacks for string content, object content, tool extraction, and snapshot timestamps', async () => {
+    const stringMessage = parseMessage({
+      type: 'user',
+      uuid: 'msg-user-string',
+      timestamp: '2026-04-23T00:00:00.000Z',
+      message: 'plain text body',
+    });
+    expect(stringMessage).toMatchObject({
+      sessionId: '',
+      content: 'plain text body',
+      tokens: Math.ceil('plain text body'.length / 4),
+    });
+
+    const objectMessage = parseMessage({
+      type: 'assistant',
+      uuid: 'msg-assistant-object',
+      sessionId: 'parser-test-session',
+      timestamp: '2026-04-23T00:00:01.000Z',
+      content: { nested: true },
+    });
+    expect(objectMessage?.tokens).toBe(Math.ceil(JSON.stringify({ nested: true }).length / 4));
+
+    expect(
+      extractToolCalls(
+        {
+          content: [
+            { type: 'tool_use', id: 'toolu_fallback' },
+            { type: 'text', text: 'ignore' },
+            'also-ignore',
+          ],
+        },
+        'msg-assistant-object',
+        '2026-04-23T00:00:01.000Z'
+      )
+    ).toEqual([
+      {
+        id: 'toolu_fallback',
+        messageUuid: 'msg-assistant-object',
+        name: 'unknown',
+        input: {},
+        timestamp: '2026-04-23T00:00:01.000Z',
+      },
+    ]);
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-23T00:00:05.000Z'));
+    const filePath = createTempJsonl([
+      '',
+      { type: 'summary', summary: 123 },
+      { type: 'permission-mode', permissionMode: 456 },
+      {
+        type: 'file-history-snapshot',
+        timestamp: '2026-04-23T00:00:02.000Z',
+        snapshot: {
+          trackedFileBackups: {
+            'docs/guide.md': {},
+          },
+        },
+      },
+      {
+        type: 'file-history-snapshot',
+        snapshot: {
+          trackedFileBackups: {
+            '/leading-root.txt': {},
+          },
+        },
+      },
+    ]);
+
+    const parsed = await parseJSONL(filePath);
+
+    expect(parsed.summary).toBeUndefined();
+    expect(parsed.metadata).toBeUndefined();
+    expect(parsed.fileSnapshots).toEqual([
+      {
+        filePath: 'docs/guide.md',
+        timestamp: '2026-04-23T00:00:02.000Z',
+      },
+      {
+        filePath: '/leading-root.txt',
+        timestamp: '2026-04-23T00:00:05.000Z',
+      },
+    ]);
+    expect(parsed.foldersAccessed).toContain('docs');
+    expect(parsed.foldersAccessed).not.toContain('/');
+    vi.useRealTimers();
   });
 
   function createTempJsonl(lines: Array<Record<string, unknown> | string>) {
