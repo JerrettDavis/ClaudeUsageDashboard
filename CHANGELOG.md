@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.1.0](https://github.com/JerrettDavis/ClaudeUsageDashboard/compare/v4.0.1...v4.1.0) (2026-04-25)
+
+
+### Features
+
+* support openclaw and progressive analytics ([80498e2](https://github.com/JerrettDavis/ClaudeUsageDashboard/commit/80498e2d66976cdb074b1b88246e585f0692160b))
+
 ## [4.0.1](https://github.com/JerrettDavis/ClaudeUsageDashboard/compare/v4.0.0...v4.0.1) (2026-04-23)
 
 
