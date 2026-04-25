@@ -133,6 +133,14 @@ describe('ClawdbotProvider', () => {
     expect(provider.getConfigPath()).toBe(configDir);
   });
 
+  it('returns early from initialize when the OpenClaw config directory is missing', async () => {
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const missingProvider = new ClawdbotProvider(path.join(tempRoot, 'missing-openclaw'));
+
+    await expect(missingProvider.initialize()).resolves.toBeUndefined();
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('OpenClaw config not found:'));
+  });
+
   it('parses OpenClaw session files, including tool calls and usage totals', async () => {
     const parsed = await provider.parseSessionFile(sessionFilePath);
 
@@ -325,6 +333,37 @@ describe('ClawdbotProvider', () => {
       successCount: 1,
       errorCount: 1,
     });
+  });
+
+  it('supports empty sync scans and leaves explicit tracking ids open on fatal failures', async () => {
+    const emptyProvider = new ClawdbotProvider(path.join(tempRoot, 'empty-openclaw'));
+    fs.mkdirSync(emptyProvider.getConfigPath(), { recursive: true });
+
+    const emptyResult = await emptyProvider.fullSync();
+    expect(emptyResult).toEqual({ processed: 0, errors: 0 });
+
+    const trackingId = syncStatusManager.startSync('clawdbot-external');
+    vi.spyOn(
+      provider as unknown as { scanSessionFiles: () => Promise<unknown[]> },
+      'scanSessionFiles'
+    ).mockRejectedValueOnce(new Error('forced openclaw scan failure'));
+
+    await expect(provider.fullSync(trackingId)).rejects.toThrow('forced openclaw scan failure');
+
+    expect(syncStatusManager.getCompletedSyncs(5)[0]).toMatchObject({
+      providerId: 'clawdbot',
+      status: 'completed',
+      totalFiles: 0,
+    });
+    expect(syncStatusManager.getSync(trackingId)).toMatchObject({
+      id: trackingId,
+      status: 'running',
+    });
+    expect(
+      syncStatusManager
+        .getSync(trackingId)
+        ?.logs.some((entry) => entry.message.includes('forced openclaw scan failure'))
+    ).toBe(true);
   });
 });
 

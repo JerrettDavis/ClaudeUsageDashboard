@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseJSONL, parseMessage } from '@/lib/workers/parser-core';
 
 describe('parser.worker', () => {
@@ -165,6 +165,70 @@ describe('parser.worker', () => {
       uuid: 'msg-assistant',
     });
     expect(message?.tokens).toBeGreaterThan(0);
+  });
+
+  it('returns null for incomplete messages and reports progress while parsing nested tool paths', async () => {
+    expect(
+      parseMessage({
+        type: 'assistant',
+        timestamp: '2026-04-22T23:44:13.839Z',
+      })
+    ).toBeNull();
+
+    const progress = vi.fn();
+    const fillerEntries = Array.from({ length: 99 }, (_, index) => ({
+      type: 'noop',
+      ignored: index,
+    }));
+    const filePath = createTempJsonl([
+      {
+        type: 'summary',
+        summary: 'Skipped because startLine begins after this row',
+      },
+      ...fillerEntries,
+      {
+        type: 'assistant',
+        uuid: 'msg-assistant-paths',
+        sessionId: 'parser-test-session',
+        timestamp: '2026-04-22T23:50:00.000Z',
+        message: {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool_use',
+              id: 'toolu_paths_001',
+              input: {
+                path: ['src/index.ts', 'README.md'],
+                cwd: ['C:\\git\\ClaudeUsageDashboard'],
+                retries: 2,
+              },
+            },
+          ],
+        },
+      },
+    ]);
+
+    const parsed = await parseJSONL(filePath, 2, progress);
+
+    expect(progress).toHaveBeenCalledWith(100);
+    expect(parsed.summaries).toEqual([]);
+    expect(parsed.toolCalls).toEqual([
+      {
+        id: 'toolu_paths_001',
+        messageUuid: 'msg-assistant-paths',
+        name: 'unknown',
+        input: {
+          path: ['src/index.ts', 'README.md'],
+          cwd: ['C:\\git\\ClaudeUsageDashboard'],
+          retries: 2,
+        },
+        timestamp: '2026-04-22T23:50:00.000Z',
+      },
+    ]);
+    expect(parsed.filesModified).toEqual(expect.arrayContaining(['src/index.ts', 'README.md']));
+    expect(parsed.foldersAccessed).toEqual(
+      expect.arrayContaining(['src', 'C:\\git\\ClaudeUsageDashboard'])
+    );
   });
 
   function createTempJsonl(lines: Array<Record<string, unknown> | string>) {

@@ -118,4 +118,16 @@ describe('sync routers', () => {
 
     expect(mocks.completeSyncMock).toHaveBeenCalledWith('sync-claude-2', 'error');
   });
+
+  it('returns a sync id without launching Claude background work for other providers', async () => {
+    mocks.startSyncMock.mockReturnValue('sync-openclaw-1');
+
+    await expect(caller.syncStatus.startSync({ providerId: 'clawdbot' })).resolves.toEqual({
+      syncId: 'sync-openclaw-1',
+    });
+
+    expect(mocks.startSyncMock).toHaveBeenCalledWith('clawdbot');
+    expect(mocks.claudeFullSyncMock).not.toHaveBeenCalled();
+    expect(mocks.completeSyncMock).not.toHaveBeenCalled();
+  });
 });

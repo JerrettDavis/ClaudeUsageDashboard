@@ -164,6 +164,12 @@ describe('ClaudeProvider (deterministic)', () => {
     await expect(missingProvider.initialize()).rejects.toThrow('Claude config directory not found');
   });
 
+  it('requires initialization before parseSessionFile can use the worker pool', async () => {
+    await expect(provider.parseSessionFile(sessionFilePath)).rejects.toThrow(
+      'Parser pool not initialized'
+    );
+  });
+
   it('parses session files through the worker pool and can ingest/query them', async () => {
     await provider.initialize();
 
@@ -257,6 +263,57 @@ describe('ClaudeProvider (deterministic)', () => {
     ).rejects.toThrow('Not implemented yet');
   });
 
+  it('updates existing ingested sessions and rewrites their message rows', async () => {
+    await provider.initialize();
+
+    const parsed = await provider.parseSessionFile(sessionFilePath);
+    await provider.ingestSession(sessionFilePath, parsed);
+
+    const updatedParsed: ParsedSession = {
+      ...parsed,
+      summary: undefined,
+      summaries: [],
+      messages: [
+        ...parsed.messages,
+        {
+          uuid: 'test-session-001-msg-003',
+          parentUuid: 'test-session-001-msg-002',
+          sessionId: 'test-session-001',
+          type: 'assistant',
+          timestamp: '2024-01-15T10:00:10.000Z',
+          content: 'Follow-up response',
+          tokens: 10,
+          inputTokens: 5,
+          outputTokens: 10,
+        },
+      ],
+      filesModified: ['reader.py', 'writer.py'],
+      foldersAccessed: ['C:\\git\\demo\\project'],
+      toolCalls: parsed.toolCalls,
+    };
+
+    await provider.ingestSession(sessionFilePath, updatedParsed);
+
+    const storedSession = await db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.id, 'test-session-001'))
+      .limit(1);
+    expect(storedSession[0]).toMatchObject({
+      messageCount: 3,
+      tokensInput: 17,
+      tokensOutput: 34,
+      fileCount: 2,
+      lastSummary: null,
+    });
+
+    const storedMessages = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.sessionId, 'test-session-001'));
+    expect(storedMessages).toHaveLength(3);
+  });
+
   it('fullSync scans, parses, ingests, and records completion state', async () => {
     createSessionFile(configDir, 'C--git-demo-project', 'test-session-002');
     await provider.initialize();
@@ -297,6 +354,28 @@ describe('ClaudeProvider (deterministic)', () => {
 
     await provider.terminate();
     expect(poolMocks.terminate).toHaveBeenCalledOnce();
+  });
+
+  it('keeps externally tracked syncs active when fullSync fails before completion', async () => {
+    await provider.initialize();
+    const trackingId = syncStatusManager.startSync('claude-external');
+    vi.spyOn(
+      provider as unknown as { scanSessionFiles: () => Promise<string[]> },
+      'scanSessionFiles'
+    ).mockRejectedValueOnce(new Error('forced scan failure'));
+
+    await expect(provider.fullSync(trackingId)).rejects.toThrow('forced scan failure');
+
+    expect(syncStatusManager.getCompletedSyncs(5)).toEqual([]);
+    expect(syncStatusManager.getSync(trackingId)).toMatchObject({
+      id: trackingId,
+      status: 'running',
+    });
+    expect(
+      syncStatusManager
+        .getSync(trackingId)
+        ?.logs.some((entry) => entry.message.includes('forced scan failure'))
+    ).toBe(true);
   });
 });
 
