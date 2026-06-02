@@ -36,6 +36,20 @@ const repoRoot = process.cwd();
 const dataDir = path.join(repoRoot, 'data');
 const databasePath = process.env.DATABASE_URL || path.join(dataDir, 'claude-dashboard.e2e.db');
 const e2eHomeDir = path.join(dataDir, 'e2e-home');
+const seedAnchor = new Date();
+
+function recentIso(daysAgo: number, hour: number, minute = 0, second = 0) {
+  return new Date(
+    Date.UTC(
+      seedAnchor.getUTCFullYear(),
+      seedAnchor.getUTCMonth(),
+      seedAnchor.getUTCDate() - daysAgo,
+      hour,
+      minute,
+      second
+    )
+  ).toISOString();
+}
 
 const seededSessions: SeedSession[] = [
   {
@@ -44,8 +58,8 @@ const seededSessions: SeedSession[] = [
     projectName: 'ClaudeUsageDashboard',
     projectPath: 'C:\\git\\ClaudeUsageDashboard',
     status: 'active',
-    startTime: '2026-04-21T14:00:00.000Z',
-    lastActivity: '2026-04-21T14:09:30.000Z',
+    startTime: recentIso(2, 14),
+    lastActivity: recentIso(2, 14, 9, 30),
     lastSummary:
       'Added a guides hub, expanded Playwright coverage, and prepared a static companion site for GitHub Pages.',
     filesModified: [
@@ -58,7 +72,7 @@ const seededSessions: SeedSession[] = [
       {
         id: 'demo-active-msg-1',
         role: 'user',
-        timestamp: '2026-04-21T14:00:00.000Z',
+        timestamp: recentIso(2, 14),
         tokens: 52,
         content: 'Add a guide page for new users and capture screenshots for the docs.',
         terminalContent: 'Add a guide page for new users and capture screenshots for the docs.',
@@ -66,7 +80,7 @@ const seededSessions: SeedSession[] = [
       {
         id: 'demo-active-msg-2',
         role: 'assistant',
-        timestamp: '2026-04-21T14:01:20.000Z',
+        timestamp: recentIso(2, 14, 1, 20),
         tokens: 188,
         content: JSON.stringify([
           {
@@ -88,7 +102,7 @@ const seededSessions: SeedSession[] = [
             input: {
               path: 'app/guides/page.tsx',
             },
-            timestamp: '2026-04-21T14:01:20.000Z',
+            timestamp: recentIso(2, 14, 1, 20),
           },
         ],
         terminalContent: [
@@ -108,7 +122,7 @@ const seededSessions: SeedSession[] = [
       {
         id: 'demo-active-msg-3',
         role: 'user',
-        timestamp: '2026-04-21T14:04:00.000Z',
+        timestamp: recentIso(2, 14, 4),
         tokens: 47,
         content: 'Add browser coverage for the dashboard, sessions, and monitoring flows.',
         terminalContent: 'Add browser coverage for the dashboard, sessions, and monitoring flows.',
@@ -116,7 +130,7 @@ const seededSessions: SeedSession[] = [
       {
         id: 'demo-active-msg-4',
         role: 'assistant',
-        timestamp: '2026-04-21T14:06:00.000Z',
+        timestamp: recentIso(2, 14, 6),
         tokens: 216,
         content: JSON.stringify([
           {
@@ -143,7 +157,7 @@ const seededSessions: SeedSession[] = [
             input: {
               path: 'tests/e2e/dashboard.spec.ts',
             },
-            timestamp: '2026-04-21T14:06:00.000Z',
+            timestamp: recentIso(2, 14, 6),
           },
         ],
         terminalContent: [
@@ -173,9 +187,9 @@ const seededSessions: SeedSession[] = [
     projectName: 'API Playground',
     projectPath: 'C:\\git\\APIPlayground',
     status: 'completed',
-    startTime: '2026-04-18T09:20:00.000Z',
-    endTime: '2026-04-18T09:48:00.000Z',
-    lastActivity: '2026-04-18T09:48:00.000Z',
+    startTime: recentIso(5, 9, 20),
+    endTime: recentIso(5, 9, 48),
+    lastActivity: recentIso(5, 9, 48),
     lastSummary:
       'Finished an API refactor and validated the router changes with unit tests and TypeScript.',
     filesModified: ['lib/trpc/routers/sessions.ts', 'tests/integration/trpc.test.ts'],
@@ -184,7 +198,7 @@ const seededSessions: SeedSession[] = [
       {
         id: 'demo-completed-msg-1',
         role: 'user',
-        timestamp: '2026-04-18T09:20:00.000Z',
+        timestamp: recentIso(5, 9, 20),
         tokens: 33,
         content: 'Refactor the sessions router and keep the tests green.',
         terminalContent: 'Refactor the sessions router and keep the tests green.',
@@ -192,7 +206,7 @@ const seededSessions: SeedSession[] = [
       {
         id: 'demo-completed-msg-2',
         role: 'assistant',
-        timestamp: '2026-04-18T09:48:00.000Z',
+        timestamp: recentIso(5, 9, 48),
         tokens: 144,
         content: JSON.stringify([
           {
@@ -214,7 +228,7 @@ const seededSessions: SeedSession[] = [
             input: {
               path: 'lib/trpc/routers/sessions.ts',
             },
-            timestamp: '2026-04-18T09:48:00.000Z',
+            timestamp: recentIso(5, 9, 48),
           },
         ],
         terminalContent: [
@@ -239,9 +253,9 @@ const seededSessions: SeedSession[] = [
     projectName: 'Docs Portal',
     projectPath: 'C:\\git\\DocsPortal',
     status: 'error',
-    startTime: '2026-04-17T17:05:00.000Z',
-    endTime: '2026-04-17T17:19:00.000Z',
-    lastActivity: '2026-04-17T17:19:00.000Z',
+    startTime: recentIso(6, 17, 5),
+    endTime: recentIso(6, 17, 19),
+    lastActivity: recentIso(6, 17, 19),
     lastSummary:
       'Attempted a docs sync, but the output path was missing and the workflow failed fast.',
     filesModified: ['README.md', 'SCREENSHOTS.md'],
@@ -250,7 +264,7 @@ const seededSessions: SeedSession[] = [
       {
         id: 'demo-error-msg-1',
         role: 'user',
-        timestamp: '2026-04-17T17:05:00.000Z',
+        timestamp: recentIso(6, 17, 5),
         tokens: 25,
         content: 'Publish the docs bundle to Pages after every release.',
         terminalContent: 'Publish the docs bundle to Pages after every release.',
@@ -258,7 +272,7 @@ const seededSessions: SeedSession[] = [
       {
         id: 'demo-error-msg-2',
         role: 'assistant',
-        timestamp: '2026-04-17T17:19:00.000Z',
+        timestamp: recentIso(6, 17, 19),
         tokens: 132,
         content: JSON.stringify([
           {
@@ -284,7 +298,7 @@ const seededSessions: SeedSession[] = [
             input: {
               command: 'npm run pages:build',
             },
-            timestamp: '2026-04-17T17:19:00.000Z',
+            timestamp: recentIso(6, 17, 19),
           },
         ],
         terminalContent: [
