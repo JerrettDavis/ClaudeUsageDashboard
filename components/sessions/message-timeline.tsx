@@ -21,7 +21,7 @@ export function MessageTimeline({ sessionId }: MessageTimelineProps) {
     );
   }
 
-  if (!session || !session.messages || session.messages.length === 0) {
+  if (!session?.messages || session.messages.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
         <p className="text-xs text-zinc-600 font-mono">No messages found</p>
