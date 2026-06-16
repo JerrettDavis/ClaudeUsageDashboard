@@ -92,9 +92,8 @@
     "vitest": "^4.1.8"
   },
   "overrides": {
-    "ajv": "6.14.0",
     "brace-expansion": "2.0.3",
-    "esbuild": "0.25.12",
+    "esbuild": "0.28.1",
     "postcss": "8.5.15"
   },
   "lint-staged": {
