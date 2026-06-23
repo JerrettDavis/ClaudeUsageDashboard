@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { open, readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { buildOpenClawSessionId, resolveOpenClawStateDir } from '@/lib/providers/openclaw-paths';
 import { eventBus } from './event-bus';
@@ -144,8 +144,17 @@ export class FileWatcherService {
   private async initializeFile(filePath: string, provider: string = 'claude') {
     try {
       const normalizedPath = filePath.replace(/\//g, '\\');
-      const stats = await stat(normalizedPath);
-      const content = await readFile(normalizedPath, 'utf-8');
+      // Open a file handle first, then fstat + read through the same handle to
+      // avoid a TOCTOU race between a separate stat() and readFile() call.
+      const fh = await open(normalizedPath, 'r');
+      let stats: Awaited<ReturnType<typeof fh.stat>>;
+      let content: string;
+      try {
+        stats = await fh.stat();
+        content = await fh.readFile('utf-8');
+      } finally {
+        await fh.close();
+      }
       const lines = content.split('\n').filter((line) => line.trim());
 
       this.fileStates.set(filePath, {
@@ -189,8 +198,17 @@ export class FileWatcherService {
   private async handleFileChanged(filePath: string, state: FileState) {
     try {
       const normalizedPath = filePath.replace(/\//g, '\\');
-      const stats = await stat(normalizedPath);
-      const content = await readFile(normalizedPath, 'utf-8');
+      // Open a file handle first, then fstat + read through the same handle to
+      // avoid a TOCTOU race between a separate stat() and readFile() call.
+      const fh = await open(normalizedPath, 'r');
+      let stats: Awaited<ReturnType<typeof fh.stat>>;
+      let content: string;
+      try {
+        stats = await fh.stat();
+        content = await fh.readFile('utf-8');
+      } finally {
+        await fh.close();
+      }
       const lines = content.split('\n').filter((line) => line.trim());
 
       const newLineCount = lines.length;

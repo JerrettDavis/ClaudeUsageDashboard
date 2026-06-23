@@ -6,10 +6,14 @@ import { extractToolCalls, parseJSONL, parseMessage } from '@/lib/workers/parser
 
 describe('parser.worker', () => {
   const tempFiles: string[] = [];
+  const tempDirs: string[] = [];
 
   afterEach(() => {
     for (const filePath of tempFiles.splice(0)) {
       fs.rmSync(filePath, { force: true });
+    }
+    for (const dirPath of tempDirs.splice(0)) {
+      fs.rmSync(dirPath, { recursive: true, force: true });
     }
   });
 
@@ -320,7 +324,11 @@ describe('parser.worker', () => {
   });
 
   function createTempJsonl(lines: Array<Record<string, unknown> | string>) {
-    const filePath = path.join(os.tmpdir(), `parser-worker-${Date.now()}-${Math.random()}.jsonl`);
+    // Use mkdtempSync to get a cryptographically unique, unpredictable directory
+    // so the file path cannot be predicted and a symlink attack cannot be set up.
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'parser-worker-'));
+    tempDirs.push(tmpDir);
+    const filePath = path.join(tmpDir, 'test.jsonl');
     fs.writeFileSync(
       filePath,
       `${lines
