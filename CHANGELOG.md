@@ -1,5 +1,18 @@
 # Changelog
 
+## [4.1.0](https://github.com/JerrettDavis/ClaudeUsageDashboard/compare/v4.0.1...v4.1.0) (2026-06-23)
+
+
+### Features
+
+* support openclaw and progressive analytics ([80498e2](https://github.com/JerrettDavis/ClaudeUsageDashboard/commit/80498e2d66976cdb074b1b88246e585f0692160b))
+
+
+### Bug Fixes
+
+* **security:** remediate CodeQL TOCTOU and insecure temp file alerts ([#39](https://github.com/JerrettDavis/ClaudeUsageDashboard/issues/39)) ([919b137](https://github.com/JerrettDavis/ClaudeUsageDashboard/commit/919b13731d3a441708436541f8059616e8f8faa3))
+* update esbuild security override ([c45ef91](https://github.com/JerrettDavis/ClaudeUsageDashboard/commit/c45ef914b855812ce40c2583475679a736ef1272))
+
 ## [4.0.1](https://github.com/JerrettDavis/ClaudeUsageDashboard/compare/v4.0.0...v4.0.1) (2026-04-23)
 
 
