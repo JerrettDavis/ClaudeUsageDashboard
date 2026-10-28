@@ -7,28 +7,34 @@ npm run screenshots
 ```
 
 ## Dashboard Overview
+
 ![Dashboard overview](public/screenshots/dashboard-overview.png)
-*System metrics, quick actions, and recent activity on the main dashboard*
+_System metrics, quick actions, and recent activity on the main dashboard_
 
 ## Session Details
+
 ![Session Details](public/screenshots/session-detail.png)
-*Detailed statistics, summary, files, folders, and message timeline for a single session*
+_Detailed statistics, summary, files, folders, and message timeline for a single session_
 
 ## Sessions List
+
 ![Sessions List](public/screenshots/sessions-list.png)
-*Filterable inventory of active, completed, and error sessions*
+_Filterable inventory of active, completed, and error sessions_
 
 ## Analytics Overview
+
 ![Analytics Overview](public/screenshots/analytics-overview.png)
-*Operator analytics for completion rate, tool usage, project activity, and transcript hotspots*
+_Operator analytics for completion rate, tool usage, project activity, and transcript hotspots_
 
 ## Tiling Window Manager
+
 ![Tiling Monitor](public/screenshots/tiling-monitor.png)
-*Monitor active Claude sessions in a terminal-style tiling layout*
+_Monitor active Claude sessions in a terminal-style tiling layout_
 
 ## Guides Hub
+
 ![Guides Hub](public/screenshots/guides-hub.png)
-*Built-in onboarding page that links routes, workflows, and screenshots*
+_Built-in onboarding page that links routes, workflows, and screenshots_
 
 ---
 

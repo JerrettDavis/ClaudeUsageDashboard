@@ -6,16 +6,20 @@ Thank you for your interest in contributing! This document provides guidelines a
 
 1. **Fork the repository**
 2. **Clone your fork**
+
    ```bash
    git clone https://github.com/YOUR_USERNAME/ClaudeUsageDashboard.git
    cd ClaudeUsageDashboard
    ```
 3. **Install dependencies**
+
    ```bash
    npm install
    ```
+
    This also installs the repository Git hooks automatically.
 4. **Start development server**
+
    ```bash
    npm run dev
    ```
@@ -23,6 +27,7 @@ Thank you for your interest in contributing! This document provides guidelines a
 ## 🏗️ Architecture Overview
 
 ### Key Principles
+
 - **Type Safety**: Full TypeScript coverage
 - **Real-time First**: SSE for live updates
 - **Worker Threads**: CPU-intensive tasks off main thread
@@ -30,6 +35,7 @@ Thank you for your interest in contributing! This document provides guidelines a
 - **Clean Architecture**: Separation of concerns
 
 ### Directory Structure
+
 - `app/` - Next.js App Router (pages and API routes)
 - `components/` - React components (UI and features)
 - `lib/services/` - Core business logic
@@ -40,17 +46,20 @@ Thank you for your interest in contributing! This document provides guidelines a
 ## 📝 Development Workflow
 
 ### 1. Create a Feature Branch
+
 ```bash
 git checkout -b feature/your-feature-name
 ```
 
 ### 2. Make Your Changes
+
 - Follow existing code patterns
 - Keep components small and focused
 - Add TypeScript types for all new code
 - Use existing hooks and services where possible
 
 ### 3. Test Your Changes
+
 ```bash
 npm run lint        # Check for linting errors
 npm run typecheck   # Check TypeScript types
@@ -58,6 +67,7 @@ npm run build       # Ensure production build works
 ```
 
 ### 4. Commit Your Changes
+
 ```bash
 git add .
 git commit -m "feat: brief description of your changes"
@@ -77,6 +87,7 @@ The `pre-commit` hook also runs fast local safety checks:
 - Full repo TypeScript typecheck
 
 ### 5. Push and Create PR
+
 ```bash
 git push origin feature/your-feature-name
 ```
@@ -86,12 +97,14 @@ Then create a Pull Request on GitHub.
 ## 🎨 Code Style
 
 ### TypeScript
+
 - Use explicit types (avoid `any`)
 - Prefer interfaces over types for objects
 - Use `const` for immutable values
 - Destructure props in components
 
 ### React Components
+
 ```typescript
 // Good component structure
 interface MyComponentProps {
@@ -111,6 +124,7 @@ export function MyComponent({ title, count }: MyComponentProps) {
 ```
 
 ### Naming Conventions
+
 - **Components**: PascalCase (`SessionTerminal.tsx`)
 - **Hooks**: camelCase with `use` prefix (`useEventSource.ts`)
 - **Services**: PascalCase classes (`FileWatcherService`)
@@ -127,12 +141,14 @@ While we're still building out the test infrastructure, aim to:
 ## 📚 Adding New Features
 
 ### Adding a New AI Provider
+
 1. Create provider implementation in `lib/providers/`
 2. Implement the base provider interface
 3. Add file parsing logic
 4. Update the UI to support the new provider
 
 ### Adding a New Monitoring View
+
 1. Create component in `components/monitoring/`
 2. Add route in `app/monitoring/`
 3. Connect to event bus for real-time updates

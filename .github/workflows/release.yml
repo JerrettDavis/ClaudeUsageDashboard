@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to build (e.g., v1.2.0)'
+        description: "Tag to build (e.g., v1.2.0)"
         required: true
 
 permissions:
@@ -79,8 +79,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -101,7 +101,7 @@ jobs:
         run: |
           NODE_VERSION="v22.13.1"
           mkdir -p portable-node
-          
+
           if [[ "${{ matrix.node_arch }}" == "win-x64" ]]; then
             curl -L "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-win-x64.zip" -o node.zip
             unzip node.zip
@@ -120,7 +120,7 @@ jobs:
         run: |
           mkdir -p dist-placeholder
           echo "<html><body>Loading...</body></html>" > dist-placeholder/index.html
-          
+
           # Clean dev artifacts from standalone
           rm -rf .next/standalone/data
           rm -rf .next/standalone/tests
@@ -132,7 +132,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p src-tauri/icons
-          
+
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             rsvg-convert -w 512 -h 512 public/icon.svg > src-tauri/icons/icon.png
             convert src-tauri/icons/icon.png -define icon:auto-resize=256,128,64,48,32,16 src-tauri/icons/icon.ico
@@ -159,17 +159,17 @@ jobs:
           $releaseDir = "release/Claude Usage Dashboard"
           New-Item -ItemType Directory -Path "$releaseDir/server" -Force
           New-Item -ItemType Directory -Path "$releaseDir/runtime" -Force
-          
+
           # Copy Tauri executable
           Copy-Item "src-tauri/target/${{ matrix.target }}/release/${{ matrix.exe_name }}" "$releaseDir/Claude Usage Dashboard.exe"
-          
+
           # Copy server
           Get-ChildItem ".next/standalone" | Copy-Item -Destination "$releaseDir/server/" -Recurse -Force
           Copy-Item -Recurse -Force ".next/static" "$releaseDir/server/.next/"
-          
+
           # Copy Node.js runtime
           Copy-Item "portable-node/node.exe" "$releaseDir/runtime/"
-          
+
           # Create zip
           Compress-Archive -Path "release/Claude Usage Dashboard" -DestinationPath "release/${{ matrix.artifact }}"
 
@@ -179,19 +179,19 @@ jobs:
           RELEASE_DIR="release/Claude Usage Dashboard"
           mkdir -p "$RELEASE_DIR/server/.next"
           mkdir -p "$RELEASE_DIR/runtime"
-          
+
           # Copy Tauri executable
           cp "src-tauri/target/${{ matrix.target }}/release/${{ matrix.exe_name }}" "$RELEASE_DIR/Claude Usage Dashboard"
           chmod +x "$RELEASE_DIR/Claude Usage Dashboard"
-          
+
           # Copy server
           cp -r .next/standalone/* "$RELEASE_DIR/server/"
           cp -r .next/static "$RELEASE_DIR/server/.next/"
-          
+
           # Copy Node.js runtime
           cp portable-node/node "$RELEASE_DIR/runtime/"
           chmod +x "$RELEASE_DIR/runtime/node"
-          
+
           # Create tarball
           cd release
           tar -czvf "${{ matrix.artifact }}" "Claude Usage Dashboard"
@@ -202,19 +202,19 @@ jobs:
           RELEASE_DIR="release/Claude Usage Dashboard"
           mkdir -p "$RELEASE_DIR/server/.next"
           mkdir -p "$RELEASE_DIR/runtime"
-          
+
           # Copy Tauri executable
           cp "src-tauri/target/${{ matrix.target }}/release/${{ matrix.exe_name }}" "$RELEASE_DIR/claude-usage-dashboard"
           chmod +x "$RELEASE_DIR/claude-usage-dashboard"
-          
+
           # Copy server
           cp -r .next/standalone/* "$RELEASE_DIR/server/"
           cp -r .next/static "$RELEASE_DIR/server/.next/"
-          
+
           # Copy Node.js runtime
           cp portable-node/node "$RELEASE_DIR/runtime/"
           chmod +x "$RELEASE_DIR/runtime/node"
-          
+
           # Create tarball
           cd release
           tar -czvf "${{ matrix.artifact }}" "Claude Usage Dashboard"
