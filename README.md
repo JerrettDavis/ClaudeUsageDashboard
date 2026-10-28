@@ -11,6 +11,7 @@ A comprehensive, real-time monitoring dashboard for AI coding assistant usage. T
 ## ✨ Features
 
 ### 🖥️ **Tiling Window Manager**
+
 - Monitor multiple AI sessions simultaneously in a customizable grid layout
 - Real-time streaming of conversation content
 - Auto-open new sessions, auto-close finished sessions
@@ -18,24 +19,28 @@ A comprehensive, real-time monitoring dashboard for AI coding assistant usage. T
 - Session details panel with live statistics
 
 ### 📊 **Real-Time Monitoring**
+
 - Live event stream with Server-Sent Events (SSE)
 - File watching with automatic change detection
 - Process monitoring for active sessions
 - Terminal-style output with color-coded messages
 
 ### 📈 **Analytics & Insights**
+
 - Token usage tracking (input/output)
 - Cost estimation per session
 - Message count and duration tracking
 - Project-level statistics
 
 ### 🎯 **Session Management**
+
 - Session picker modal with auto-population
 - Quick-add bar for detected sessions
 - Message history caching for instant reload
 - Chunked message loading (newest first)
 
 ### 📚 **Guides & Documentation**
+
 - Built-in `/guides` hub with workflow-specific onboarding
 - Repeatable Playwright-driven product screenshots
 - Static GitHub Pages companion site for guides and visuals
@@ -52,7 +57,6 @@ A comprehensive, real-time monitoring dashboard for AI coding assistant usage. T
 ### Option 1: Desktop App (Recommended)
 
 Download the portable app for your platform from [Releases](https://github.com/JerrettDavis/ClaudeUsageDashboard/releases):
-
 - **Windows**: `claude-dashboard-windows.zip` - Extract and run `Claude Usage Dashboard.exe`
 - **macOS (Intel)**: `claude-dashboard-macos-x64.tar.gz` - Extract and run `claude-dashboard`
 - **macOS (Apple Silicon)**: `claude-dashboard-macos-arm64.tar.gz` - Extract and run `claude-dashboard`
@@ -94,26 +98,29 @@ Visit [http://localhost:3000](http://localhost:3000) to see the dashboard.
 ## 🚀 Quick Start
 
 1. **Docker (Easiest)**
+
    ```bash
    docker compose up -d
    ```
 
 2. **Development Mode**
+
    ```bash
    npm run dev
    ```
 
 3. **Production Build**
+
    ```bash
    npm run build
    npm start
    ```
 
-3. **View the Tiling Monitor**
-    - Navigate to `/monitoring/sessions`
-    - Enable AUTO-OPEN to automatically track new sessions
-    - Click "Add Session" to manually add specific sessions
-4. **Open the Guides Hub**
+4. **View the Tiling Monitor**
+   - Navigate to `/monitoring/sessions`
+     - Enable AUTO-OPEN to automatically track new sessions
+       - Click "Add Session" to manually add specific sessions
+5. **Open the Guides Hub**
    - Navigate to `/guides`
    - Review the screenshot-backed walkthroughs for the dashboard, sessions, and monitoring views
 
@@ -151,7 +158,6 @@ ai-usage-dashboard/
 ### Tiling Window Manager
 
 The tiling monitor allows you to watch multiple AI sessions simultaneously:
-
 - **Dynamic Grid Layout**: Automatically adjusts based on session count
   - 1 session: Full screen
   - 2 sessions: Side by side
@@ -192,12 +198,14 @@ No configuration file needed - it works out of the box!
 ## 📊 Data Sources
 
 ### Session Files (JSONL)
+
 The dashboard reads session data from `.jsonl` files:
 - One JSON object per line
 - Contains messages, tool calls, and metadata
 - Automatically parsed and formatted
 
 ### Database
+
 Local SQLite database stores:
 - Session metadata
 - Message history
@@ -238,7 +246,6 @@ npm run build
 ## Git Hooks
 
 After `npm install`, repository-managed Git hooks are installed automatically.
-
 - `pre-commit` blocks commits when staged files fail Biome checks, contain merge conflict markers, or break the repo-wide TypeScript typecheck.
 - `commit-msg` enforces Conventional Commits via `commitlint`.
 

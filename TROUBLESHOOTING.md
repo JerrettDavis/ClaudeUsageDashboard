@@ -128,7 +128,6 @@ lsof -ti:3000 | xargs kill
 ## Getting Help
 
 If you encounter an issue not listed here:
-
 1. **Check the logs**: Browser console (F12) and terminal output
 2. **Search issues**: [GitHub Issues](https://github.com/JerrettDavis/ClaudeUsageDashboard/issues)
 3. **Create an issue**: Include:

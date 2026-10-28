@@ -1,38 +1,38 @@
 # Label configuration for actions/labeler@v5
 # https://github.com/actions/labeler
 
-'area: app':
+"area: app":
   - changed-files:
-      - any-glob-to-any-file: 'app/**'
+      - any-glob-to-any-file: "app/**"
 
-'area: components':
+"area: components":
   - changed-files:
-      - any-glob-to-any-file: 'components/**'
+      - any-glob-to-any-file: "components/**"
 
-'area: lib':
+"area: lib":
   - changed-files:
-      - any-glob-to-any-file: 'lib/**'
+      - any-glob-to-any-file: "lib/**"
 
-'area: tests':
+"area: tests":
   - changed-files:
-      - any-glob-to-any-file: 'tests/**'
+      - any-glob-to-any-file: "tests/**"
 
-'area: database':
+"area: database":
   - changed-files:
-      - any-glob-to-any-file: 'drizzle/**'
+      - any-glob-to-any-file: "drizzle/**"
 
-'area: ci/cd':
+"area: ci/cd":
   - changed-files:
-      - any-glob-to-any-file: '.github/**'
+      - any-glob-to-any-file: ".github/**"
 
-'dependencies':
+"dependencies":
   - changed-files:
       - any-glob-to-any-file:
-          - 'package.json'
-          - 'package-lock.json'
+          - "package.json"
+          - "package-lock.json"
 
-'documentation':
+"documentation":
   - changed-files:
       - any-glob-to-any-file:
-          - '*.md'
-          - 'docs/**'
+          - "*.md"
+          - "docs/**"
